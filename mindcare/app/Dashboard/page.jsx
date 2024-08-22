@@ -20,7 +20,6 @@ import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import { useCookie } from '../hooks/useCookie.hook';
-import withAuth from '../withAuth';
 import { get, postNoAutenticate, put, del } from '../Services/apiService';
 import { useRouter } from 'next/navigation';
 
@@ -139,7 +138,7 @@ function Dashboard() {
             >
               Dashboard
             </Typography>
-            <Button variant="text" onClick={LogOut}>Log Out</Button>
+            <Button  variant="contained" onClick={LogOut}>Log Out</Button>
 
             <IconButton color="inherit">
               <Badge badgeContent={4} color="secondary">
