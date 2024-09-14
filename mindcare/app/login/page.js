@@ -31,7 +31,8 @@ export default function SignIn() {
 
       const newData = await postNoAutenticate('auth/login', data);
       console.log('logged:', newData);
-      set("username", data?.username)
+      set("username", newData?.userName)
+      set("profile", newData?.profile)
       set("accessToken", newData?.accessToken)
       set("refreshToken", newData?.refreshToken)
       push('Dashboard')

@@ -1,95 +1,62 @@
- 
 import { useAppContext } from "../../app/context/context";
 import { useCookie } from "../hooks/useCookie.hook";
-import { Avatar, Box, Button, Divider, Drawer, Grid, ListItem, ListItemAvatar, ListItemIcon, ListItemText, Tooltip, Typography } from "@mui/material";
+import {
+  Divider,
+  Drawer,
+  IconButton,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Toolbar
+} from "@mui/material";
 import { useRouter } from "next/navigation";
-import { v4 as uuidv4 } from 'uuid';
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import SendIcon from "@mui/icons-material/Send";
+import { Routes } from "../routes";
 
 export const SideBar = (props) => {
-	const {
-		open,
-		toggleDrawer,
-		navRoutes
-	} = props;
+  const { open, toggleDrawer, navRoutes } = props;
 
-	const {
-		push
-	} = useRouter();
+  const { push } = useRouter();
 
-	const {
-		get
-	} = useCookie();
+  const { get } = useCookie();
 
-	const {
-		user
-	} = useAppContext();
+  const { user } = useAppContext();
+  
+  const router = useRouter();
 
-	return (
-		<Drawer
-			data-testid="SideBar"
-			className={`side-bar ${open ? "drawer-open" : "drawer-close"}`}
-			variant="permanent"
-			open={open} >
+  const ShowMenu = () => {
+    return Routes.map((item, index) => (
+      <ListItemButton key={index} onClick={() => push(`${item.path}`)}>
+        <ListItemIcon>
+          <SendIcon />
+        </ListItemIcon>
+        <ListItemText primary={item.name} />
+      </ListItemButton>
+    ));
+  };
 
-			<Grid container>
-				<Grid item xs>
-					<Button onClick={toggleDrawer} fullWidth >
-						 
-					</Button>
-				</Grid>
-			</Grid>
-
-			<Divider className="drawer-divider" />
-
-			{
-				navRoutes.map(route => (
-					!route.hideRoute &&
-					<Tooltip
-						className="drawer-tooltip"
-						placement="right"
-						key={route.name}
-						title={open ? null : route.name} >
-						<ListItem className="drawer-list" key={uuidv4()} onClick={() => push(`${route.path}`)} button>
-							<ListItemIcon className="drawer-route-icon">
-								{route.icon ? <route.icon className="drawer-custom-icon" /> : <TpIcon name={route.name} />}
-							</ListItemIcon>
-							<ListItemText className={`drawer-list-text ${!open && "drawer-item-hiddend"}`}>
-								{ route.name }
-							</ListItemText>
-						</ListItem>
-					</Tooltip>
-				))
-			}
-			{
-				user &&
-				<Box position="absolute" bottom="20px" className={`drawer-profile-container ${open && "open"}`} >
-					<ListItem className="drawer-profile-item">
-						{
-							open ?
-							<>
-								<ListItemAvatar>
-									<Avatar src={`data:image/jpeg;charset=utf-8;base64,${get("avatar")}`}/>
-								</ListItemAvatar>
-								<ListItemText
-									primary={<Typography className="drawer-profile-text" >{ user?.name }</Typography>}
-									secondary={<Typography className="drawer-profile-text" >{ user?.role }</Typography>} />
-							</>
-							:
-							<Avatar src={`data:image/jpeg;charset=utf-8;base64,${get("avatar")}`} />
-						}
-					</ListItem>
-					{
-						open &&
-						<>
-							<Divider />
-
-							<Typography className="drawer-copyright">
-								© { process.env.YEAR } TPMAR Solution Delivery
-							</Typography>
-						</>
-					}
-				</Box>
-			}
-		</Drawer>
-	)
-}
+  return (
+    <Drawer variant="permanent" open={open}>
+      {/* SideBar */}
+      <Toolbar
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          px: [1],
+        }}
+      >
+        <IconButton onClick={toggleDrawer}>
+          <ChevronLeftIcon />
+        </IconButton>
+      </Toolbar>
+      <Divider />
+      <List component="nav">
+        <Divider sx={{ my: 1 }} />
+        {ShowMenu()}
+      </List>
+    </Drawer>
+  );
+};

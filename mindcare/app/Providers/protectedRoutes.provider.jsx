@@ -6,6 +6,9 @@ import { ContextProvider } from "../context/context";
 import { useAppContext } from "../context/context";
 import { Loading } from "../../app/components/loading.component";
 import { Layout } from "../../app/layouts/layout.layout";
+import {NotFound} from "../errors/notFound";
+import {Unauthorize} from "../errors/unauthorize";
+import {Forbidden} from "../errors/forbidden";
 
 export const ProtectedRoutesProvider = (props) => {
 	const [loading, setLoading] = useState(true);
@@ -23,8 +26,8 @@ export const ProtectedRoutesProvider = (props) => {
 	}, [])
 
 	//Context states
-	const  user  = useAppContext();
-
+	const  {user}  = useAppContext();
+	console.log("*** information", user)
 	const render = (content) => {	 
 		if (pathname === "/_error") return <NotFound />
 		let _path = pathname;
@@ -35,18 +38,19 @@ export const ProtectedRoutesProvider = (props) => {
 			if (route.path.includes(":")) _routePath = route.path.slice(0, route.path.indexOf(":") - 1);
 			return _routePath === _path
 		});
-
-		if (currentRoute && currentRoute.authorize !== false) {
+		
+		if (currentRoute) {
+			// console.log("user information", currentRoute.roles, user.profile)
 			if (!user) return <Unauthorize />;
-			else if (currentRoute.roles?.length !== 0 && !currentRoute.roles?.includes(user?.role)) return <Forbidden />;
-		}
+			else if (currentRoute.roles?.length !== 0 && !currentRoute.roles?.includes(user?.profile)) return <Forbidden />;
+		} 
 
 		let useLayout;
 		if (!currentRoute) useLayout = false;
 		else useLayout = currentRoute.layout ?? true;
 
 		let navRoutes;
-		if (user) navRoutes = Routes.filter(route => route.authorize === false || route.roles.length === 0 || route.roles.includes(user.role))
+		if (user) navRoutes = Routes.filter(route => route.authorize === false || route.roles.length === 0 || route.roles.includes(user?.profile))
 
 			return (
 				<Layout

@@ -7,7 +7,8 @@ const accessToken = cookies.get("accessToken");
 const handleResponse = async (response) => {
     if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Something went wrong');
+        // console.log("handleResponse", error.error)
+        throw new Error(error.error || 'Algo anda mal');
     }
     return response.json();
 };
@@ -33,6 +34,25 @@ export const post = async (endpoint, data) => {
         body: JSON.stringify(data),
     });
     return handleResponse(response);
+};
+
+export const postcustom = async (endpoint, data) => {
+    try{
+
+        const response = await fetch(`${API_BASE_URL}/${endpoint}`, {
+            method: 'POST',
+            headers: {      
+                'Authorization': `Bearer ${accessToken}`,
+            },
+            body: data,
+        });
+        return handleResponse(response);
+
+    }catch (error) {
+        // Capturar errores de la solicitud o de la red
+        console.error('Error en la solicitud POST:', error);
+        throw error; // Puedes relanzar el error para manejarlo en otro lugar si es necesario
+    }
 };
 
 export const postNoAutenticate = async (endpoint, data) => {
