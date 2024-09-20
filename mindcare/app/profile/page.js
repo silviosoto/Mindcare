@@ -6,9 +6,9 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Swal from 'sweetalert2'
 import {getDepatamentos, getMunicipios, getServicios,
-   getIdiomas}  from "../Services/register.service";
+   getIdiomas, getPsicologo}  from "../Services/register.service";
 import { post, postcustom } from '../Services/apiService';
-
+import { useAppContext } from "../context/context";
 
 // Esquema de validación con Yup
 const validationSchema = Yup.object({
@@ -53,7 +53,7 @@ const validationSchema = Yup.object({
 });
 
 const PsicologoForm = () => {
-
+	const  {user}  = useAppContext();
   const [selectDepartamentos, setSelectDepartamentos] = useState([]);
   const [selectServicios, setselectServicios] = useState([]);
   const [selectIdiomas, setselectIdiomas] = useState([]);
@@ -242,7 +242,7 @@ const PsicologoForm = () => {
   };
 
   const GetIdiomasPsicologo = () => {
-
+     
     getIdiomas()
       .then(data => {
       
@@ -284,7 +284,32 @@ const PsicologoForm = () => {
       });
   };
 
+  const GetPsicologo = () =>{
+    
+    if(user== null) return 
+
+    getPsicologo(user.userid)
+    .then(data => {
+      console.log("getServicios", data)
+      let servicios = [];
+      if (data != undefined) {
+        servicios = data;
+      }
+
+      let selectServicios = servicios.map((a, y) =>
+        <MenuItem key={y} value={a.id}>{a.nombre}</MenuItem>
+        );
+
+      setselectServicios(selectServicios)
+    })
+    .catch(e => {
+      console.log(e);
+    });
+  }
+  
   useEffect(() => {
+    console.log("user", user)
+    GetPsicologo();
     GetDepartamentos();
     GetIdiomasPsicologo();
     GetServiciosPsicologo();

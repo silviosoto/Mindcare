@@ -31,6 +31,7 @@ export default function SignIn() {
 
       const newData = await postNoAutenticate('auth/login', data);
       console.log('logged:', newData);
+      set("userid", newData?.userId)
       set("username", newData?.userName)
       set("profile", newData?.profile)
       set("accessToken", newData?.accessToken)

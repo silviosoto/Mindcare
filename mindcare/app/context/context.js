@@ -14,8 +14,10 @@ export const ContextProvider = (props) => {
 
 	useEffect(() => {
 		setUser(
-			{user : cookieStorage.get("username"),
-			profile: cookieStorage.get("profile")
+			{
+				userid : cookieStorage.get("userid"),
+				user : cookieStorage.get("username"),
+				profile: cookieStorage.get("profile")
 			}
 		)
  	}, [])

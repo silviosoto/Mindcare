@@ -40,6 +40,19 @@ export const getIdiomas = async() => {
     }
 };
 
+export const getPsicologo = async( id )  => {
+    try {
+        console.log(id)
+        const { data } = await get( `psicologo/${id}`);
+        const result = data ? data : [];
+        res(result);
+    }
+    catch (ex) {
+        rej(ex);
+    }
+};
+
+
 export const RegistrarPsicologo =  async (Psicologo) => {
 
     console.log("handleEnviar 3" , data)
