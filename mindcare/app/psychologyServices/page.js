@@ -93,7 +93,8 @@ const PsychologyServices = () => {
           simpleAlert("Registro guardado", "", "success");
         })
         .catch((e) => {
-          simpleAlert("Algo salió mal", "", "error");
+          console.log("erorr : registrarServicioDePsicologo ", e)
+          simpleAlert("Algo salió mal",  e, "error");
         });
     }
   };
