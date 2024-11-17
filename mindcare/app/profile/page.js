@@ -1,67 +1,72 @@
-"use client"
-import React, { useEffect, useState } from 'react';
-import { Button, TextField, Grid, Box, Typography, Container, FormControl,
-   InputLabel, Select, MenuItem, FormHelperText, FormControlLabel, Checkbox } from '@mui/material';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import Swal from 'sweetalert2'
-import {getDepatamentos, getMunicipios, getServicios,
-   getIdiomas, getPsicologo}  from "../Services/register.service";
-import { post, postcustom } from '../Services/apiService';
+"use client";
+import React, { useEffect, useState } from "react";
+import {
+  Button,
+  TextField,
+  Grid,
+  Box,
+  Typography,
+  Container,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText,
+  FormControlLabel,
+  AppBar,
+  Toolbar,
+  IconButton,
+  CheckBox,
+  Checkbox,
+} from "@mui/material";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import Swal from "sweetalert2";
+import {
+  getDepatamentos,
+  getMunicipios,
+  getIdiomas,
+  getPsicologo, getMunicipioById
+} from "../Services/register.service";
+import { postcustom } from "../Services/apiService";
+import moment from 'moment';
 import { useAppContext } from "../context/context";
-
 // Esquema de validación con Yup
 const validationSchema = Yup.object({
   nombre: Yup.string()
-    .required('La campo es obligatorio')
-    .max(500, 'La nombre no puede exceder los 500 caracteres'),
+    .required("La campo es obligatorio")
+    .max(500, "La nombre no puede exceder los 500 caracteres"),
   apellidos: Yup.string()
-    .required('El campo es obligatorio')
-    .max(500, 'El campo apellidos no puede exceder los 500 caracteres'),
-  fechaNacimiento: Yup.date()
-  .required('El campo es obligatorio'),
-  email: Yup.string()
-    .email()
-    .required('El campo es obligatorio'),
-  telefono: Yup.number()
-    .nullable()
-    .required('La campo es obligatorio'),
-  descripcion: Yup.string()
-    .required('El campo es obligatorio'),
-  numeroId: Yup.number()
-    .required('La campo es obligatorio'),
-  experiencia: Yup.number().required('La campo es obligatorio'),
-  departamento: Yup.string()
-    .required('El campo es obligatorio'),
-  ciudad: Yup.string()
-    .required('El campo es obligatorio'),
-  descripcion: Yup.string()
-    .required('El campo es obligatorio'),
-  idiomas: Yup.string()
-    .required('El campo es obligatorio'),
+    .required("El campo es obligatorio")
+    .max(500, "El campo apellidos no puede exceder los 500 caracteres"),
+  fechaNacimiento: Yup.date().required("El campo es obligatorio"),
+  email: Yup.string().email().required("El campo es obligatorio"),
+  telefono: Yup.number().nullable().required("La campo es obligatorio"),
+  descripcion: Yup.string().required("El campo es obligatorio"),
+  numeroId: Yup.number().required("La campo es obligatorio"),
+  experiencia: Yup.number().required("La campo es obligatorio"),
+  departamento: Yup.string().required("El campo es obligatorio"),
+  ciudad: Yup.string().required("El campo es obligatorio"),
+  descripcion: Yup.string().required("El campo es obligatorio"),
   psicologoIdiomas: Yup.array()
-    .min(1, 'Debe seleccionar al menos una idioma')
-    .required('El campo es obligatorio'),
-  file: Yup.mixed()
-    .required('El archivo CV es obligatorio')
-    .test(
-      "fileFormat",
-      "Solo se permite subir archivos PDF",
-      value => value && value.type === "application/pdf"
-    ),
-  
+    .min(1, "Debe seleccionar al menos una idioma")
+    .required("El campo es obligatorio"),
+  termsAccepted: Yup.boolean().oneOf(
+    [true],
+    "Debe aceptar los términos y condiciones"
+  )
 });
 
-const PsicologoForm = () => {
-	const  {user}  = useAppContext();
+const RgistrarForm = () => {
+  
+  const  {user}  = useAppContext();
   const [selectDepartamentos, setSelectDepartamentos] = useState([]);
-  const [selectServicios, setselectServicios] = useState([]);
   const [selectIdiomas, setselectIdiomas] = useState([]);
   const [selectMunicipios, setSelectMunicipios] = useState([]);
 
   const datosPsicologoInit = {
-    id: 0
-  }
+    id: 0,
+  };
 
   const datosPersonalesInit = {
     id: 0,
@@ -86,94 +91,94 @@ const PsicologoForm = () => {
     idDatosPersonalesNavigation: datosPsicologoInit,
     psicologoServicios: [],
     psicologoIdiomas: [],
-    termsAccepted: false
-  }
+    termsAccepted: false,
+  };
 
-  const handleEnviar = async (data,  { resetForm }) => {
-    
+
+  const handleEnviar = async (data, { resetForm }) => {
+    console.log("handleEnviar", data);
     try {
-     
-      if (!isPDF(data.file.name)) {
+      
+      // if (!isPDF(data.file.name)) {
+      //   data.file.value = "";
 
-        data.file.value = '';
+      //   Swal.fire({
+      //     title: "Error!",
+      //     text: "Por favor, sube un archivo con extensión .pdf",
+      //     html: "<p>Este es un mensaje válido</p>",
+      //     icon: "error",
+      //   });
 
-        Swal.fire({
-          title: "Error!",
-          text: "Por favor, sube un archivo con extensión .pdf",
-          html: '<p>Este es un mensaje válido</p>',
-          icon: "error"
-        });
-
-        return false;
-      }
+      //   return false;
+      // }
 
       let idDatosPersonalesNavigation = {
-        id: 0,
+        id: data.idDatosPersonales,
         nombre: data.nombre,
         apellidos: data.apellidos,
         fechaNacimiento: data.fechaNacimiento,
         email: data.email,
         telefono: data.telefono,
         tipoId: "1",
-        numeroId: data.numeroId
-      }
+        numeroId: data.numeroId,
+        municipiosId: data.ciudad
+      };
 
-      let psicologoIdiomas = data.psicologoIdiomas.map((v)=>{
-         
-        return { Id: 0, IdIdioma: v  }
-      })
+      let psicologoIdiomas = data.psicologoIdiomas.map((v) => {
+        return { Id: 0, IdIdioma: v };
+      });
 
-      let psicologoServicios = data.psicologoServicios.map((v)=>{
-         
-        return { id: 0, idServicio: v, idPsicologo: 0  }
-      })
+      let psicologoServicios = data.psicologoServicios.map((v) => {
+        return { id: 0, idServicio: v, idPsicologo: 0 };
+      });
 
       let payload = {
-        id: 0,
+        id: data.id,
         file: data.file,
-        psicologoIdiomas: psicologoIdiomas  ,
+        psicologoIdiomas: psicologoIdiomas,
         descripcion: data.descripcion,
         estado: true,
         validado: "0",
-        idDatosPersonales: 0,
+        idDatosPersonales: data.idDatosPersonales,
         experiencia: data.experiencia,
         idDatosPersonalesNavigation,
         sugerencias: data.sugerencias,
         psicologoServicios: psicologoServicios,
-      }
+      };
       var formData = new FormData();
       for (const name in payload) {
-        if (name == "psicologoIdiomas" || 
-                name == "idDatosPersonalesNavigation" || name == "psicologoServicios") {
-            let psicologoIdiomas = payload[name]
-            formData.append(name, JSON.stringify(psicologoIdiomas));
+        if (
+          name == "psicologoIdiomas" ||
+          name == "idDatosPersonalesNavigation" ||
+          name == "psicologoServicios"
+        ) {
+          let psicologoIdiomas = payload[name];
+          formData.append(name, JSON.stringify(psicologoIdiomas));
         } else {
-            formData.append(name, payload[name]);
+          formData.append(name, payload[name]);
         }
       }
- 
-      postcustom("Psicologo", formData)
+
+      postcustom("Psicologo/updatePsicology", formData)
         .then((data) => {
           Swal.fire({
             title: "Registro guardado",
-            text: "You clicked the button!",
-            html: "<p>Este es un mensaje válido</p>",
+            // text: "You clicked the button!",
+            // html: "<p>Este es un mensaje válido</p>",
             icon: "success",
           });
           // CleanForm();
-          resetForm();
+          // resetForm();
         })
         .catch((e) => {
-          
           Swal.fire({
             icon: "error",
             title: "Oops...",
             text: e,
           });
         });
-
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
   };
 
@@ -181,138 +186,151 @@ const PsicologoForm = () => {
     initialValues: datosPersonalesInit,
     validationSchema: validationSchema,
     onSubmit: (values, resetForm) => {
-      // console.log('Formulario enviado:', values);
-      handleEnviar(values, resetForm)
-    }
+      console.log("Formulario enviado:", values);
+      handleEnviar(values, resetForm);
+    },
   });
 
   const isPDF = (nombreArchivo) => {
     // Obtener la extensión del archivo
-    const extension = nombreArchivo.split('.').pop().toLowerCase();
+    const extension = nombreArchivo.split(".").pop().toLowerCase();
     // Verificar si la extensión es 'pdf'
-    if (extension == 'pdf') {
-      return true
+    if (extension == "pdf") {
+      return true;
     } else {
-      return false
+      return false;
     }
-  }
- 
+  };
+
   const GetDepartamentos = async () => {
-
     try {
-      getDepatamentos()
-      .then(data => {
-
+      getDepatamentos().then((data) => {
         let departamentos = [];
         if (data != undefined) {
           departamentos = data;
         }
-  
-        let selectDepartamentos = departamentos.map((a, y) =>
-        <MenuItem key={y} value={a.id}>{a.nombre}</MenuItem>
-        );
-  
-        setSelectDepartamentos(selectDepartamentos)
-      })
 
-    } catch (error) {
-      
-    } 
+        let selectDepartamentos = departamentos.map((a, y) => (
+          <MenuItem key={y} value={a.id}>
+            {a.nombre}
+          </MenuItem>
+        ));
+
+        setSelectDepartamentos(selectDepartamentos);
+      });
+    } catch (error) {}
   };
 
-  const GetServiciosPsicologo = () => {
-
-    getServicios()
-      .then(data => {
-        console.log("getServicios", data)
-        let servicios = [];
-        if (data != undefined) {
-          servicios = data;
-        }
-
-        let selectServicios = servicios.map((a, y) =>
-          <MenuItem key={y} value={a.id}>{a.nombre}</MenuItem>
-          );
-
-        setselectServicios(selectServicios)
-      })
-      .catch(e => {
-
-      });
+  const GetDepartamentoBymunicipio = async (idMunicipio) => {
+ 
+    try {
+      const result = await getMunicipioById(idMunicipio);
+      return result?.departamentoId
+      
+    } catch (error) {
+      console.log(error)  
+    }
+   
   };
 
   const GetIdiomasPsicologo = () => {
-     
     getIdiomas()
-      .then(data => {
-      
+      .then((data) => {
         let servicios = [];
         if (data != undefined) {
           servicios = data;
         }
 
-        let Idiomas = servicios.map((a, y) =>
-          <MenuItem key={y} value={a.id}>{a.nombre}</MenuItem>
-        );
+        let Idiomas = servicios.map((a, y) => (
+          <MenuItem key={y} value={a.id}>
+            {a.nombre}
+          </MenuItem>
+        ));
 
-        setselectIdiomas(Idiomas)
+        setselectIdiomas(Idiomas);
       })
-      .catch(e => {
-
-      });
+      .catch((e) => {});
   };
 
   const handleSelectChange = (event) => {
-    // Actualiza el estado con el nuevo valor seleccionado   
-    console.log(event.target.value)
-    formik.values.departamento = event.target.value
+    // Actualiza el estado con el nuevo valor seleccionado
+    formik.values.departamento = event.target.value;
     getMunicipios(event.target.value)
-      .then(data => {
+      .then((data) => {
         let municipios = [];
         if (data != undefined) {
           municipios = data;
         }
 
-        let selectMunicipios = municipios.map((a, y) =>
-          <MenuItem key={y} value={a.id}>{a.nombre}</MenuItem>
-        );
+        let selectMunicipios = municipios.map((a, y) => (
+          <MenuItem key={y} value={a.id}>
+            {a.nombre}
+          </MenuItem>
+        ));
 
-        setSelectMunicipios(selectMunicipios)
+        setSelectMunicipios(selectMunicipios);
       })
-      .catch(e => {
-
-      });
+      .catch((e) => {});
   };
-
-  const GetPsicologo = () =>{
-    
-    if(user== null) return 
-
-    getPsicologo(user.userid)
-    .then(data => {
-      console.log("getServicios", data)
-      let servicios = [];
-      if (data != undefined) {
-        servicios = data;
-      }
-
-      let selectServicios = servicios.map((a, y) =>
-        <MenuItem key={y} value={a.id}>{a.nombre}</MenuItem>
-        );
-
-      setselectServicios(selectServicios)
-    })
-    .catch(e => {
-      console.log(e);
-    });
-  }
   
+  const GetPsicologo = async () =>{
+    if(user== null) return 
+    
+    try {
+
+      const data = await getPsicologo(user.userid)
+
+      if (data != undefined) {
+        let departamentoId = await GetDepartamentoBymunicipio( data.idDatosPersonalesNavigation.municipiosId)
+        getMunicipios(departamentoId)
+        .then(data => {
+          let municipios = [];
+          if (data != undefined) {
+            municipios = data;
+          }
+  
+          let selectMunicipios = municipios.map((a, y) =>
+            <MenuItem key={y} value={a.id}>{a.nombre}</MenuItem>
+          );
+  
+          setSelectMunicipios(selectMunicipios)
+        })
+        .catch(e => {
+  
+        });
+           
+        formik.setValues({
+          id: data.id,
+          descripcion: data.descripcion,
+          estado: data.estado,
+          idDatosPersonales: data.idDatosPersonales,
+          experiencia: data.experiencia,
+          nombre: data.idDatosPersonalesNavigation.nombre,
+          apellidos: data.idDatosPersonalesNavigation.apellidos,
+          fechaNacimiento:moment(data.idDatosPersonalesNavigation.fechaNacimiento).format('YYYY-MM-DD'), 
+          email: data.idDatosPersonalesNavigation.email,
+          telefono: data.idDatosPersonalesNavigation.telefono,
+          tipoId: data.idDatosPersonalesNavigation.tipoId,
+          numeroId: data.idDatosPersonalesNavigation.numeroId,
+          departamento: departamentoId,
+          ciudad: data.idDatosPersonalesNavigation.municipiosId,
+          file: data.file,
+          direccion: data.direccion,
+          sugerencias: data.sugerencias,
+          // idDatosPersonalesNavigation: datosPsicologoInit,
+          psicologoServicios: [],
+          psicologoIdiomas: [1]
+        });
+      }
+    } catch (error) {
+      console.log("GetPsicologo", error)
+    }
+  }
+
   useEffect(() => {
-    console.log("user", user)
     GetPsicologo();
     GetDepartamentos();
     GetIdiomasPsicologo();
-    GetServiciosPsicologo();
   }, []);
 
   return (
@@ -320,13 +338,42 @@ const PsicologoForm = () => {
       <Box
         sx={{
           marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
         }}
       >
+        <AppBar position="absolute">
+          <Toolbar
+            sx={{
+              pr: "24px", // keep right padding when drawer closed
+            }}
+          >
+            <IconButton
+              edge="start"
+              color="inherit"
+              aria-label="open drawer"
+              sx={{
+                marginRight: "36px",
+                ...(open && { display: "none" }),
+              }}
+            >
+              {/* <MenuIcon /> */}
+            </IconButton>
+            <Typography
+              component="h1"
+              variant="h6"
+              color="inherit"
+              noWrap
+              sx={{ flexGrow: 1 }}
+            >
+              Mindcare
+            </Typography>
+          </Toolbar>
+        </AppBar>
+        <Box sx={{ m: 1 }} />
         <Typography component="h1" variant="h5">
-          Datos personales
+          Perfil
         </Typography>
         <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 3 }}>
           <Grid container spacing={2}>
@@ -350,13 +397,15 @@ const PsicologoForm = () => {
                 label="Apellidos"
                 value={formik.values.apellidos}
                 onChange={formik.handleChange}
-                error={formik.touched.apellidos && Boolean(formik.errors.apellidos)}
+                error={
+                  formik.touched.apellidos && Boolean(formik.errors.apellidos)
+                }
                 helperText={formik.touched.apellidos && formik.errors.apellidos}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                type='date'
+                type="date"
                 fullWidth
                 id="fechaNacimiento"
                 name="fechaNacimiento"
@@ -366,8 +415,14 @@ const PsicologoForm = () => {
                 }}
                 value={formik.values.fechaNacimiento}
                 onChange={formik.handleChange}
-                error={formik.touched.fechaNacimiento && Boolean(formik.errors.fechaNacimiento)}
-                helperText={formik.touched.fechaNacimiento && formik.errors.fechaNacimiento}
+                error={
+                  formik.touched.fechaNacimiento &&
+                  Boolean(formik.errors.fechaNacimiento)
+                }
+                helperText={
+                  formik.touched.fechaNacimiento &&
+                  formik.errors.fechaNacimiento
+                }
               />
             </Grid>
             <Grid item xs={6}>
@@ -390,7 +445,9 @@ const PsicologoForm = () => {
                 label="Teléfono"
                 value={formik.values.telefono}
                 onChange={formik.handleChange}
-                error={formik.touched.telefono && Boolean(formik.errors.telefono)}
+                error={
+                  formik.touched.telefono && Boolean(formik.errors.telefono)
+                }
                 helperText={formik.touched.telefono && formik.errors.telefono}
               />
             </Grid>
@@ -402,12 +459,20 @@ const PsicologoForm = () => {
                 label="Identificacion"
                 value={formik.values.numeroId}
                 onChange={formik.handleChange}
-                error={formik.touched.numeroId && Boolean(formik.errors.numeroId)}
+                error={
+                  formik.touched.numeroId && Boolean(formik.errors.numeroId)
+                }
                 helperText={formik.touched.numeroId && formik.errors.numeroId}
               />
             </Grid>
             <Grid item xs={6} sm={6}>
-              <FormControl fullWidth error={formik.touched.departamento && Boolean(formik.errors.departamento)}>
+              <FormControl
+                fullWidth
+                error={
+                  formik.touched.departamento &&
+                  Boolean(formik.errors.departamento)
+                }
+              >
                 <InputLabel id="departamento-label">Departamento</InputLabel>
                 <Select
                   labelId="departamento-label"
@@ -419,7 +484,7 @@ const PsicologoForm = () => {
                   label="Departamento"
                   defaultValue=""
                 >
-                 {selectDepartamentos}
+                  {selectDepartamentos}
                 </Select>
                 {formik.touched.departamento && (
                   <FormHelperText>{formik.errors.departamento}</FormHelperText>
@@ -427,18 +492,21 @@ const PsicologoForm = () => {
               </FormControl>
             </Grid>
             <Grid item xs={6} sm={6}>
-              <FormControl fullWidth error={formik.touched.ciudad && Boolean(formik.errors.ciudad)}>
+              <FormControl
+                fullWidth
+                error={formik.touched.ciudad && Boolean(formik.errors.ciudad)}
+              >
                 <InputLabel id="ciudad-label">Municipio</InputLabel>
                 <Select
                   labelId="ciudad-label"
                   id="ciudad"
                   name="ciudad"
                   value={formik.values.ciudad}
-                  // onChange={formik.handleChange}
+                  onChange={formik.handleChange}
                   label="Ciudad"
                   defaultValue=""
                 >
-                 {selectMunicipios}
+                  {selectMunicipios}
                 </Select>
                 {formik.touched.ciudad && (
                   <FormHelperText>{formik.errors.ciudad}</FormHelperText>
@@ -446,8 +514,13 @@ const PsicologoForm = () => {
               </FormControl>
             </Grid>
             <Grid item xs={6} sm={6}>
-              <FormControl fullWidth error={formik.touched.psicologoIdiomas
-                 && Boolean(formik.errors.psicologoIdiomas)}>
+              <FormControl
+                fullWidth
+                error={
+                  formik.touched.psicologoIdiomas &&
+                  Boolean(formik.errors.psicologoIdiomas)
+                }
+              >
                 <InputLabel id="Idiomas-label">Idiomas</InputLabel>
                 <Select
                   labelId="Idiomas-label"
@@ -459,32 +532,35 @@ const PsicologoForm = () => {
                   multiple
                   defaultValue=""
                 >
-                 {selectIdiomas}
+                  {selectIdiomas}
                 </Select>
                 {formik.touched.psicologoIdiomas && (
-                  <FormHelperText>{formik.errors.psicologoIdiomas}</FormHelperText>
+                  <FormHelperText>
+                    {formik.errors.psicologoIdiomas}
+                  </FormHelperText>
                 )}
               </FormControl>
             </Grid>
             <Grid item xs={6} sm={6}>
               <TextField
                 fullWidth
-                type='number'
+                type="number"
                 id="experiencia"
                 name="experiencia"
                 label="Años de experiencia"
                 value={formik.values.experiencia}
                 onChange={formik.handleChange}
-                error={formik.touched.experiencia && Boolean(formik.errors.experiencia)}
-                helperText={formik.touched.experiencia && formik.errors.experiencia}
+                error={
+                  formik.touched.experiencia &&
+                  Boolean(formik.errors.experiencia)
+                }
+                helperText={
+                  formik.touched.experiencia && formik.errors.experiencia
+                }
               />
             </Grid>
-              <Grid item xs={12}>
-              <Button
-                variant="contained"
-                component="label"
-                fullWidth
-              >
+            <Grid item xs={12}>
+              <Button variant="contained" component="label" fullWidth>
                 Subir CV (PDF)
                 <input
                   type="file"
@@ -511,10 +587,16 @@ const PsicologoForm = () => {
                 rows={4}
                 value={formik.values.descripcion}
                 onChange={formik.handleChange}
-                error={formik.touched.descripcion && Boolean(formik.errors.descripcion)}
-                helperText={formik.touched.descripcion && formik.errors.descripcion}
+                error={
+                  formik.touched.descripcion &&
+                  Boolean(formik.errors.descripcion)
+                }
+                helperText={
+                  formik.touched.descripcion && formik.errors.descripcion
+                }
               />
             </Grid>
+              
           </Grid>
           <Button
             type="submit"
@@ -530,4 +612,4 @@ const PsicologoForm = () => {
   );
 };
 
-export default PsicologoForm;
+export default RgistrarForm;

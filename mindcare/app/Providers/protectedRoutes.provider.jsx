@@ -27,7 +27,7 @@ export const ProtectedRoutesProvider = (props) => {
 
 	//Context states
 	const  {user}  = useAppContext();
-	console.log("*** information", user)
+	// console.log("*** information", user)
 	const render = (content) => {	 
 		if (pathname === "/_error") return <NotFound />
 		let _path = pathname;

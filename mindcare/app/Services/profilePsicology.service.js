@@ -1,4 +1,4 @@
-import { get, post } from "./apiService";
+import { get, post, del, put } from "./apiService";
 
  
 export const getDepatamentos = async () => {
@@ -61,20 +61,38 @@ export const getPsicologo = async( id )  => {
         throw (ex)
     }
 };
-// export const getPsicologo = async( id )  => {
-//     try {
-//         console.log(id)
-//         return await get( `psicologo/${id}`);
-//     }
-//     catch (ex) {
-//         rej(ex);
-//     }
-// };
 
+export const getServiciosPorPsicologo = async( id, pageNumber = 1 )  => {
+    try {
+        const  data  = await  get( `psicologo/getServicioPorPsicologo/${id}/${pageNumber}`);
+        const result = data ? data : [];
+        return result
+    }
+    catch (ex) {
+        throw (ex)
+    }
+};
 
+export const registrarServicioDePsicologo = async( payload )  => {
+    try {
+        return   await  post( `psicologo/InsertService`, payload );  
+    }
+    catch (ex) {
+        throw (ex)
+    }
+};
+
+export const actualizarServicioDePsicologo = async( idPsicologoServicio, payload )  => {
+    try {
+        return   await  put( `psicologo/UpdatePsicologoServicio/${idPsicologoServicio}`, payload );  
+    }
+    catch (ex) {
+        throw (ex)
+    }
+};
+ 
 export const RegistrarPsicologo =  async (Psicologo) => {
 
-    console.log("handleEnviar 3" , data)
     const formData = new FormData();
     for (const name in Psicologo) {
 
@@ -89,3 +107,12 @@ export const RegistrarPsicologo =  async (Psicologo) => {
     return await post("Psicologo", formData)
  
 }
+
+export const deleteServicioDePsicologo = async(idDepartamento) => {
+    try {
+        return await del( `psicologo/eliminarServicioPsicologo/${idDepartamento}`);
+    }
+    catch (ex) {
+        throw (ex)
+    }
+};

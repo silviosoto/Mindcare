@@ -1,17 +1,27 @@
 export const Routes = [
 	{
-		name: "home",
+		name: "Home",
 		path: "/dashboard",
 		roles: []
 	},
 	{
-		name: "user",
-		path: "/users",
+		name: "Perfil",
+		path: "/profile",
 		roles: ["SuperAdmin", "Admin", "Psicologo"]
 	},
 	{
-		name: "profile",
-		path: "/profile",
+		name: "Agenda",
+		path: "/agenda",
 		roles: ["SuperAdmin", "Admin", "Psicologo"]
-	}
+	},
+	{
+		name: "Servicios",
+		path: "/psychologyServices",
+		roles: ["SuperAdmin", "Admin", "Psicologo"]
+	},
+	{
+		name: "Reportes",
+		path: "/reportes",
+		roles: ["SuperAdmin", "Admin", "Psicologo"]
+	},
 ];
