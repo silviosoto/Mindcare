@@ -19,14 +19,14 @@ export const ProtectedRoutesProvider = (props) => {
 
 	const checkTimeOut = useRef(3600000);
 	const loadingTimeOut = useRef(500);
+	//Context states
+	const  {user}  = useAppContext();
 
 	const pathname = usePathname();
 	useEffect(() => {
 		setTimeout(() => setLoading(false) , loadingTimeOut.current);
 	}, [])
 
-	//Context states
-	const  {user}  = useAppContext();
 	// console.log("*** information", user)
 	const render = (content) => {	 
 		if (pathname === "/_error") return <NotFound />
@@ -40,7 +40,7 @@ export const ProtectedRoutesProvider = (props) => {
 		});
 		
 		if (currentRoute) {
-			// console.log("user information", currentRoute.roles, user.profile)
+			// console.log("user information", currentRoute.roles, user)
 			if (!user) return <Unauthorize />;
 			else if (currentRoute.roles?.length !== 0 && !currentRoute.roles?.includes(user?.profile)) return <Forbidden />;
 		} 

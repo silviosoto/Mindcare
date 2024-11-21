@@ -19,7 +19,7 @@ export const ContextProvider = (props) => {
 				user : cookieStorage.get("username"),
 				profile: cookieStorage.get("profile")
 			}
-		)
+		);
  	}, [])
 
 	const value = useMemo(() => ({
@@ -28,7 +28,7 @@ export const ContextProvider = (props) => {
 	}), [user, urlApi]);
 	
 	return (
-		<ContextStore.Provider value={{user}}>
+		<ContextStore.Provider value={value}>
 			{ children }
 		</ContextStore.Provider>
 	)

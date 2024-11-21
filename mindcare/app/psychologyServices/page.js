@@ -24,12 +24,9 @@ import {
   actualizarServicioDePsicologo,
 } from "../Services/profilePsicology.service";
 import { useAppContext } from "../context/context";
-import Swal from "sweetalert2";
 import {
   useSimpleAlert,
-  useConfirmationAlert,
-  useInputAlert,
-  useTimedAlert,
+  useConfirmationAlert
 } from "../hooks/useSwal";
 
 const columns = [
@@ -44,7 +41,28 @@ const columns = [
   },
 ];
 
+// Esquema de validación con Yup
+const validationSchema = Yup.object({
+  servicio: Yup.array()
+    .required('La campo es obligatorio'),
+  apellidos: Yup.string()
+    .required('El campo es obligatorio')
+    .max(500, 'El campo apellidos no puede exceder los 500 caracteres'),
+  fechaNacimiento: Yup.date()
+  .required('El campo es obligatorio'),
+  email: Yup.string()
+    .email()
+    .required('El campo es obligatorio'),
+  telefono: Yup.number()
+    .nullable()
+    .required('La campo es obligatorio')  
+});
+
 const paginationModel = { page: 0, pageSize: 5 };
+const initData = {
+  servicio: [],
+  varlor: 0
+}
 
 const PsychologyServices = () => {
   
@@ -53,6 +71,15 @@ const PsychologyServices = () => {
   const [selectedRow, setSelectedRow] = useState(null);
   const [rows, setRow] = useState([]);
   const { user } = useAppContext();
+  
+  const formik = useFormik({
+    initialValues: initData,
+    validationSchema: validationSchema,
+    onSubmit: (values, resetForm) => {
+      console.log('Formulario enviado:', values);
+      // handleEnviar(values, resetForm)
+    }
+  });
 
   const handleSelectionChange = (selection) => {
     const selectedId = selection[0];
@@ -70,9 +97,9 @@ const PsychologyServices = () => {
     psicologoId: false,
   });
  
-  const handleSubmitForm = async (data) => {
+  const handleSubmitForm = async (data, e ) => {
     if (user == null) return;
-
+    formik.handleSubmit(e)
     const payload = {
       idUser: user.userid,
       idServicio: parseInt(data.servicio, 10),
@@ -266,6 +293,7 @@ const AddServiceFormModal = ({ data, handleChange }) => {
           },
         ]
   );
+
   const [loading, setLoading] = useState(false);
   const [selectedService, setSelectedService] = useState(
     initialStateAutoComplete
@@ -357,8 +385,12 @@ const AddServiceFormModal = ({ data, handleChange }) => {
             name="valor"
             type="number"
             variant="outlined"
-            value={data?.valor}
-            onChange={handleChange}
+            // value={data?.valor}
+            // onChange={handleChange}
+            value={formik.values.experiencia}
+            onChange={formik.handleChange}
+            error={formik.touched.experiencia && Boolean(formik.errors.experiencia)}
+            helperText={formik.touched.experiencia && formik.errors.experiencia}
             fullWidth
             required
           />

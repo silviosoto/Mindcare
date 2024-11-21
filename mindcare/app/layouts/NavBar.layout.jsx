@@ -8,9 +8,25 @@ import {
 } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import MenuIcon from "@mui/icons-material/Menu"; 
+import { useCookie } from "../hooks/useCookie.hook";
+import { useRouter } from "next/navigation";
 
 export const NavBar = (props) => {
   const { open, toggleDrawer } = props;
+  const router = useRouter();
+  const cookies = useCookie();
+  const LogOut = () => {
+    // eliminar el token de la pagina.
+    try {
+      cookies.remove("username");
+      cookies.remove("accessToken");
+      cookies.remove("refreshToken");
+      router.push("login");
+    } catch (error) {
+      console.error("GetDepartamento", error);
+    }
+  };
+
   return (
     <AppBar position="absolute" open={open}>
       <Toolbar
@@ -40,7 +56,7 @@ export const NavBar = (props) => {
           Dashboard
         </Typography>
         <Button variant="contained" 
-			// onClick={LogOut}
+			    onClick={LogOut}
 			>
           Log Out
         </Button>

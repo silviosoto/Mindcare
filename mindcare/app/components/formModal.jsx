@@ -10,7 +10,6 @@ export const FormModal = (props) => {
 		disableForm = false, 
 		data = {},
 		consts = {},
-		// Component to render
 		Component,
 		CustomComponent,
 		handleSubmit = () => {},
