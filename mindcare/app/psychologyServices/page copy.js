@@ -11,8 +11,8 @@ import { DataGrid } from "@mui/x-data-grid";
 import { useEffect, useState } from "react";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline"; 
-import  AddServiceFormModal from "./addServiceFormModal";
-// import  AddServiceFormModal from "./addServiceFormModal_copy";
+// import  AddServiceFormModal from "./addServiceFormModal";
+import  AddServiceFormModal from "./addServiceFormModal_copy";
 import { GenericModal } from "@/app/components/GenericModal"; 
 import {
   registrarServicioDePsicologo,
