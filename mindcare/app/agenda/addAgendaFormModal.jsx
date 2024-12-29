@@ -13,9 +13,14 @@ import {
   actualizarServicioDePsicologo,
   GetServiciosPorPsicologo
 } from "../Services/profilePsicology.service";
+ 
+import { DemoContainer } from '@mui/x-date-pickers/internals/demo';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { TimeField } from '@mui/x-date-pickers/TimeField';
 
 
-const AddServiceFormModal = ({ formik, data }) => {
+const AddAgendaFormModal = ({ formik, data }) => {
   
   const initialStateAutoComplete =
     data.length == 0
@@ -99,38 +104,11 @@ const AddServiceFormModal = ({ formik, data }) => {
     <>
       <Grid container justifyContent="center" spacing={1}>
           <Grid item xs={6}>
-            <Autocomplete
-               name="servicio"
-               id="servicio"
-               value={selectedService}
-               onChange={(event, newValue) => {
-                 setSelectedService(newValue);
-                 formik.handleChange( { target: { name: "servicio", value: newValue } } )
-               }}
-               onInputChange={(event, value) => {
-                 SearchAutocompete(value);
-               }}
-               getOptionLabel={(option) => option.label}
-               options={options}
-               loading={loading}
-               renderInput={(params) => (
-                 <TextField
-                   {...params}
-                   label="Servicios..."
-                   InputProps={{
-                     ...params.InputProps,
-                     endAdornment: (
-                       <>
-                         {loading ? (
-                           <CircularProgress color="inherit" size={20} />
-                         ) : null}
-                         {params.InputProps.endAdornment}
-                       </>
-                     ),
-                   }}
-                 />
-               )}
-             />
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DemoContainer components={['TimeField']}>
+                <TimeField label="Basic time field" />
+              </DemoContainer>
+            </LocalizationProvider>
           </Grid>
 
           <Grid item xs={3}>
@@ -152,4 +130,4 @@ const AddServiceFormModal = ({ formik, data }) => {
   );
 };
 
-export default AddServiceFormModal;
+export default AddAgendaFormModal;

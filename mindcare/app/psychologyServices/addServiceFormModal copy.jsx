@@ -15,7 +15,9 @@ import { useAppContext } from "../context/context";
 import { useFormik } from "formik";
 import { getServiciosByName } from "../Services/servicios.service";
 import {
-  registrarServicioDePsicologo
+  registrarServicioDePsicologo,
+  actualizarServicioDePsicologo,
+  GetServiciosPorPsicologo
 } from "../Services/profilePsicology.service";
 import {
   useSimpleAlert,
@@ -23,6 +25,7 @@ import {
 } from "../hooks/useSwal";
 
 const AddServiceFormModal = ({ data, handleSubmit }) => {
+  
   const initialStateAutoComplete =
     data.length == 0
       ? null
@@ -43,6 +46,33 @@ const AddServiceFormModal = ({ data, handleSubmit }) => {
         ]
   );
 
+  const haveInitialData = (data) =>{
+    if(data.length == 0){
+      return false;
+    }
+    return true;
+  }
+
+  const returnInitialData = (data) =>{
+    var object = {   
+      servicio: {},
+      valor: 0
+    } 
+
+    if(haveInitialData(data)){
+      object = {
+        servicio: {
+          label: data?.servicioNombre,
+          id: data?.servicioId
+        },
+        valor: 2
+      }
+    }
+ 
+    return  object
+  }
+  const initialState =  returnInitialData(data);
+  const simpleAlert = useSimpleAlert();
   const [loading, setLoading] = useState(false);
   const confirmationAlert = useConfirmationAlert();
   const [selectedService, setSelectedService] = useState(
@@ -52,15 +82,29 @@ const AddServiceFormModal = ({ data, handleSubmit }) => {
   const { user } = useAppContext();
   // Esquema de validación con Yup
   const validationSchema = Yup.object({
-    servicio: Yup.array().required("La campo es obligatorio"),
+    servicio: Yup.object().required("La campo es obligatorio"),
     valor: Yup.number().nullable().required("La campo es obligatorio"),
   });
 
+  const GetServiciosPorPsicologo = async () => {
+    try {
+      const data = await getServiciosPorPsicologo(user.userid);
+      if (data != undefined) {
+        let listService = data.map((servicio) => ({
+          ...servicio,
+          label: servicio.nombre,
+        }));
+        setRow(listService);
+      }
+    } catch (error) {}
+  };
+
   const handleSubmitForm = async (data) => {
     if (user == null) return;
+    
     const payload = {
       idUser: user.userid,
-      idServicio: parseInt(data.servicio, 10),
+      idServicio: parseInt(data.servicio.id, 10),
       valor: parseFloat(data.valor),
     };
 
@@ -84,29 +128,48 @@ const AddServiceFormModal = ({ data, handleSubmit }) => {
     }
   };
 
-  const initData = {
-    servicio: [],
-    valor: 0,
+  const handleUpdateSubmitForm = async ( id , newValues , data) => {
+    if (user == null) return;
+    console.log("handleUpdateSubmitForm",newValues)
+    const payload = {
+      idPsicologo: data.psicologoId,
+      idServicio: newValues.servicio.id,
+      valor: parseFloat(newValues.valor),
+    };
+    
+    const confirmed = await confirmationAlert(
+      "¿Estás seguro?",
+      "Los registros se actualizados",
+      "Sí, continuar",
+      "Cancelar"
+    );
+
+    if (confirmed) {
+      actualizarServicioDePsicologo(id , payload)
+      .then(async (data) => {
+        await GetServiciosPorPsicologo();
+        simpleAlert("Registro actualizado", "", "success");
+       
+      })
+      .catch((e) => {
+        simpleAlert("Algo salió mal", "", "error");
+      });
+    }
+ 
   };
 
   const formik = useFormik({
-    initialValues: initData,
+    initialValues: initialState,
     validationSchema: validationSchema,
-    onSubmit: (values, resetForm) => {
-      // alert("alerta de enviar")
-      console.log("Formulario enviado:", values);
-      handleSubmitForm(values)
-      // handleEnviar(values, resetForm)
+    onSubmit: (valuesFormik, resetForm) => {
+      if( haveInitialData(data) ) {
+        handleUpdateSubmitForm(data?.id, valuesFormik, data)
+      }else{
+        handleSubmitForm(valuesFormik)
+      }
+
     },
   });
-
-  const handleButtonClick = () => {
-    if (selectedService) {
-      alert(`Seleccionaste: ${selectedService.label}`);
-    } else {
-      alert("No has seleccionado ningún servicio.");
-    }
-  };
 
   const SearchAutocompete = async (name) => {
     if (user == null) return;
@@ -128,20 +191,16 @@ const AddServiceFormModal = ({ data, handleSubmit }) => {
   };
 
   useEffect(() => {
+    console.log("data: ",data);
+    
     if (!open) {
       setOptions([]);
     }
   }, [open]);
-
-  useEffect(() => {
-    console.log("selectedService", selectedService)
-  }, []);
-
-  
-  console.log("Servicios")
+ 
   return (
     <>
-      <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 3 }}>
+      {/* <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 3 }}> */}
         <Grid container justifyContent="center" spacing={1}>
           <Grid item xs={6}>
             <Autocomplete
@@ -149,9 +208,9 @@ const AddServiceFormModal = ({ data, handleSubmit }) => {
                id="servicio"
                value={selectedService}
                onChange={(event, newValue) => {
-                console.log("--->",event,  newValue  )
+     
                  setSelectedService(newValue);
-                //  formik.handleChange( { target: { name: "servicio", value: 1 } } )
+                 formik.handleChange( { target: { name: "servicio", value: newValue } } )
 
                  // handleChange({
                  //   target: {
@@ -192,16 +251,16 @@ const AddServiceFormModal = ({ data, handleSubmit }) => {
               name="valor"
               type="number"
               variant="outlined"
-              // value={formik.values.valor}
-              // onChange={formik.handleChange}
-              // error={formik.touched.valor && Boolean(formik.errors.valor)}
-              // helperText={formik.touched.valor && formik.errors.valor}
+              value={formik.values.valor}
+              onChange={formik.handleChange}
+              error={formik.touched.valor && Boolean(formik.errors.valor)}
+              helperText={formik.touched.valor && formik.errors.valor}
               fullWidth
               required
             />
           </Grid>
           <Divider />
-          <Grid container item xs={12} justifyContent="end">
+          {/* <Grid container item xs={12} justifyContent="end">
             <Box
               sx={{
                 display: "flex",
@@ -214,9 +273,9 @@ const AddServiceFormModal = ({ data, handleSubmit }) => {
                 Enviar
               </Button>
             </Box>
-          </Grid>
+          </Grid> */}
         </Grid>
-      </Box>
+      {/* </Box> */}
     </>
   );
 };

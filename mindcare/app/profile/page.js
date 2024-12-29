@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import AddIcon from "@mui/icons-material/Add";
 import {
   Button,
   TextField,
@@ -12,12 +13,12 @@ import {
   Select,
   MenuItem,
   FormHelperText,
-  FormControlLabel,
-  AppBar,
   Toolbar,
   IconButton,
-  CheckBox,
-  Checkbox,
+  Avatar,
+  AppBar,
+  Chip,
+  Stack,
 } from "@mui/material";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -26,11 +27,21 @@ import {
   getDepatamentos,
   getMunicipios,
   getIdiomas,
-  getPsicologo, getMunicipioById
+  getPsicologo,
+  getMunicipioById,
+  registerHobbies,
+  getHobbiesbyUser,
+  deleteHobbies
 } from "../Services/register.service";
 import { postcustom } from "../Services/apiService";
-import moment from 'moment';
+import moment from "moment";
 import { useAppContext } from "../context/context";
+import Image from "next/image";
+import {
+  useSimpleAlert,
+  useConfirmationAlert
+} from "../hooks/useSwal";
+
 // Esquema de validación con Yup
 const validationSchema = Yup.object({
   nombre: Yup.string()
@@ -54,16 +65,18 @@ const validationSchema = Yup.object({
   termsAccepted: Yup.boolean().oneOf(
     [true],
     "Debe aceptar los términos y condiciones"
-  )
+  ),
 });
 
 const RgistrarForm = () => {
-  
-  const  {user}  = useAppContext();
+  const imageProfile = "/images/ProfileImage.png";
+  const { user } = useAppContext();
   const [selectDepartamentos, setSelectDepartamentos] = useState([]);
   const [selectIdiomas, setselectIdiomas] = useState([]);
   const [selectMunicipios, setSelectMunicipios] = useState([]);
-
+  const [preview, setPreview] = useState(imageProfile);
+  const [imagePerfil, setImagePerfil] = useState(imageProfile);
+  const simpleAlert = useSimpleAlert();
   const datosPsicologoInit = {
     id: 0,
   };
@@ -92,13 +105,12 @@ const RgistrarForm = () => {
     psicologoServicios: [],
     psicologoIdiomas: [],
     termsAccepted: false,
+    image: "",
   };
-
 
   const handleEnviar = async (data, { resetForm }) => {
     console.log("handleEnviar", data);
     try {
-      
       // if (!isPDF(data.file.name)) {
       //   data.file.value = "";
 
@@ -121,7 +133,7 @@ const RgistrarForm = () => {
         telefono: data.telefono,
         tipoId: "1",
         numeroId: data.numeroId,
-        municipiosId: data.ciudad
+        municipiosId: data.ciudad,
       };
 
       let psicologoIdiomas = data.psicologoIdiomas.map((v) => {
@@ -144,7 +156,9 @@ const RgistrarForm = () => {
         idDatosPersonalesNavigation,
         sugerencias: data.sugerencias,
         psicologoServicios: psicologoServicios,
+        image: data.image,
       };
+
       var formData = new FormData();
       for (const name in payload) {
         if (
@@ -222,15 +236,12 @@ const RgistrarForm = () => {
   };
 
   const GetDepartamentoBymunicipio = async (idMunicipio) => {
- 
     try {
       const result = await getMunicipioById(idMunicipio);
-      return result?.departamentoId
-      
+      return result?.departamentoId;
     } catch (error) {
-      console.log(error)  
+      console.log(error);
     }
-   
   };
 
   const GetIdiomasPsicologo = () => {
@@ -272,65 +283,141 @@ const RgistrarForm = () => {
       })
       .catch((e) => {});
   };
-  
-  const GetPsicologo = async () =>{
-    if(user== null) return 
-    
+
+  const GetPsicologo = async () => {
+    if (user == null) return;
+
     try {
+      const data = await getPsicologo(user.userid);
+      var psicologo = data.psicologo;
+      // const imageBlob = URL.createObjectURL(data.imageBase64);
+      const imageBlob = `data:image/jpeg;base64,${data.imageBase64}`;
+      setPreview(imageBlob);
 
-      const data = await getPsicologo(user.userid)
-
-      if (data != undefined) {
-        let departamentoId = await GetDepartamentoBymunicipio( data.idDatosPersonalesNavigation.municipiosId)
+      if (psicologo != undefined) {
+        let departamentoId = await GetDepartamentoBymunicipio(
+          psicologo.idDatosPersonalesNavigation.municipiosId
+        );
         getMunicipios(departamentoId)
-        .then(data => {
-          let municipios = [];
-          if (data != undefined) {
-            municipios = data;
-          }
-  
-          let selectMunicipios = municipios.map((a, y) =>
-            <MenuItem key={y} value={a.id}>{a.nombre}</MenuItem>
-          );
-  
-          setSelectMunicipios(selectMunicipios)
-        })
-        .catch(e => {
-  
-        });
-           
+          .then((data) => {
+            let municipios = [];
+            if (data != undefined) {
+              municipios = data;
+            }
+
+            let selectMunicipios = municipios.map((a, y) => (
+              <MenuItem key={y} value={a.id}>
+                {a.nombre}
+              </MenuItem>
+            ));
+
+            setSelectMunicipios(selectMunicipios);
+          })
+          .catch((e) => {});
+
         formik.setValues({
-          id: data.id,
-          descripcion: data.descripcion,
-          estado: data.estado,
-          idDatosPersonales: data.idDatosPersonales,
-          experiencia: data.experiencia,
-          nombre: data.idDatosPersonalesNavigation.nombre,
-          apellidos: data.idDatosPersonalesNavigation.apellidos,
-          fechaNacimiento:moment(data.idDatosPersonalesNavigation.fechaNacimiento).format('YYYY-MM-DD'), 
-          email: data.idDatosPersonalesNavigation.email,
-          telefono: data.idDatosPersonalesNavigation.telefono,
-          tipoId: data.idDatosPersonalesNavigation.tipoId,
-          numeroId: data.idDatosPersonalesNavigation.numeroId,
+          id: psicologo.id,
+          descripcion: psicologo.descripcion,
+          estado: psicologo.estado,
+          idDatosPersonales: psicologo.idDatosPersonales,
+          experiencia: psicologo.experiencia,
+          nombre: psicologo.idDatosPersonalesNavigation.nombre,
+          apellidos: psicologo.idDatosPersonalesNavigation.apellidos,
+          fechaNacimiento: moment(
+            psicologo.idDatosPersonalesNavigation.fechaNacimiento
+          ).format("YYYY-MM-DD"),
+          email: psicologo.idDatosPersonalesNavigation.email,
+          telefono: psicologo.idDatosPersonalesNavigation.telefono,
+          tipoId: psicologo.idDatosPersonalesNavigation.tipoId,
+          numeroId: psicologo.idDatosPersonalesNavigation.numeroId,
           departamento: departamentoId,
-          ciudad: data.idDatosPersonalesNavigation.municipiosId,
-          file: data.file,
-          direccion: data.direccion,
-          sugerencias: data.sugerencias,
+          ciudad: psicologo.idDatosPersonalesNavigation.municipiosId,
+          file: psicologo.file,
+          direccion: psicologo.direccion,
+          sugerencias: psicologo.sugerencias,
           // idDatosPersonalesNavigation: datosPsicologoInit,
           psicologoServicios: [],
-          psicologoIdiomas: [1]
+          psicologoIdiomas: [1],
         });
       }
     } catch (error) {
-      console.log("GetPsicologo", error)
+      console.log("GetPsicologo", error);
     }
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setPreview(URL.createObjectURL(file));
+    } else {
+      setPreview(imageProfile);
+    }
+  };
+
+  const [hobbies, setHobbies] = useState([]);
+  const [inputValue, setInputValue] = useState("");
+
+  const handleAddHobby = async (event) => {
+    if (inputValue.trim() !== "" && !hobbies.includes(inputValue.trim())) {
+      if (user == null) return;
+      
+      let payload = {
+        "idUser": user.userid,
+        "nombre": inputValue,
+        "estado": true
+      }
+
+      registerHobbies( payload)
+      .then(async (data) => {
+        await GetHobiesPorPsicologo();
+        simpleAlert("Registro actualizado", "", "success");
+      })
+      .catch((e) => {
+        simpleAlert("Algo salió mal", "", "error");
+      });
+      setInputValue("");
+    }
+  };
+
+  const GetHobiesPorPsicologo = async () => {
+
+    try {
+      const data = await getHobbiesbyUser(user.userid);
+      if (data != undefined) {
+        let listHobbies = data.map((hobbie) => ({
+          // ...hobbie,
+          name: hobbie.nombre,
+          id: hobbie.id,
+        }));
+     
+        setHobbies(listHobbies);
+      }
+    } catch (error) {
+      console.log("GetHobiesPorPsicologo", error);
+    }
+  };
+
+  const handleDeleteHobby = async (hobbyToDelete) => {
+    console.log("HandleDeleteHobby",hobbyToDelete);
+    await DeleteHobbies(hobbyToDelete.id);
+    setHobbies(hobbies.filter((hobby) => hobby !== hobbyToDelete));
+  };
+
+  const DeleteHobbies = async ( id ) =>{
+    await deleteHobbies(id).then(async () => {
+      await GetHobiesPorPsicologo();
+      simpleAlert("Registro eliminado", "", "success");
+    })
+    .catch((e) => {
+      simpleAlert("Algo salió mal", "", "error");
+    });
   }
 
   useEffect(() => {
     GetPsicologo();
     GetDepartamentos();
     GetIdiomasPsicologo();
+    GetHobiesPorPsicologo();
   }, []);
 
   return (
@@ -377,6 +464,38 @@ const RgistrarForm = () => {
         </Typography>
         <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 3 }}>
           <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Box sx={{ mb: 2 }}>
+                {preview && (
+                  <Avatar
+                    src={preview}
+                    alt="Vista previa"
+                    sx={{ width: 100, height: 100, mx: "auto", mb: 2 }}
+                  />
+                )}
+                <Button variant="contained" component="label" fullWidth>
+                  Foto
+                  <input
+                    type="file"
+                    hidden
+                    src={imagePerfil}
+                    accept="image/*"
+                    id="image"
+                    name="image"
+                    onChange={(event) => {
+                      handleFileChange(event);
+                      formik.setFieldValue(
+                        "image",
+                        event.currentTarget.files[0]
+                      );
+                    }}
+                  />
+                </Button>
+                {formik.touched.image && formik.errors.image && (
+                  <FormHelperText error>{formik.errors.image}</FormHelperText>
+                )}
+              </Box>
+            </Grid>
             <Grid item xs={6}>
               <TextField
                 fullWidth
@@ -596,7 +715,41 @@ const RgistrarForm = () => {
                 }
               />
             </Grid>
-              
+            <Grid item xs={12}>
+              <Stack spacing={2}>
+               
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <TextField
+                    label="Hobby"
+                    variant="outlined"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder="Que hobbies tienes?"
+                    fullWidth
+                  />
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleAddHobby}
+                    disabled={inputValue.trim() === ""}
+                  >
+                    <AddIcon />
+                  </Button>
+                </Box>
+
+                {/* Lista de hobbies */}
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                  {hobbies.map((hobby, index) => (
+                    <Chip
+                      key={hobby.id}
+                      label={hobby.name}
+                      onDelete={() => handleDeleteHobby(hobby)}
+                      color="primary"
+                    />
+                  ))}
+                </Box>
+              </Stack>
+            </Grid>
           </Grid>
           <Button
             type="submit"

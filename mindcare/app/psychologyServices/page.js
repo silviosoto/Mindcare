@@ -12,7 +12,6 @@ import { useEffect, useState } from "react";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline"; 
 import  AddServiceFormModal from "./addServiceFormModal";
-// import  AddServiceFormModal from "./addServiceFormModal_copy";
 import { GenericModal } from "@/app/components/GenericModal"; 
 import {
   registrarServicioDePsicologo,
@@ -26,9 +25,10 @@ import {
   useConfirmationAlert
 } from "../hooks/useSwal";
 import AddIcon from "@mui/icons-material/Add";
+import * as Yup from "yup";
 
 const columns = [
-  { field: "id", headerName: "ID", width: 70 },
+  { field: "id", headerName: "ID", width: 70},
   { field: "psicologoId" },
   { field: "servicioNombre", headerName: "Servicio", width: 200 },
   {
@@ -39,22 +39,16 @@ const columns = [
   },
 ];
 const paginationModel = { page: 0, pageSize: 5 };
-const initData = {
-  servicio: [],
-  varlor: 0
-}
 
 const PsychologyServices = () => {
   
   const simpleAlert = useSimpleAlert();
   const confirmationAlert = useConfirmationAlert();
   const [selectedRow, setSelectedRow] = useState(null);
+  const [isSelected, setIsSelected] = useState(false);
+  const [initialState, setInitialState] = useState([]);
   const [rows, setRow] = useState([]);
   const { user } = useAppContext();
-
-  const handleSubmit = () => {
-    console.log('Acción de enviar del modal');
-  };
 
   const handleSelectionChange = (selection) => {
     const selectedId = selection[0];
@@ -70,64 +64,7 @@ const PsychologyServices = () => {
     id: false,
     psicologoId: false,
   });
- 
-  // const handleSubmitForm = async (data, e ) => {
-  //   if (user == null) return;
-  //   const payload = {
-  //     idUser: user.userid,
-  //     idServicio: parseInt(data.servicio, 10),
-  //     valor: parseFloat(data.valor),
-  //   };
 
-  //   const confirmed = await confirmationAlert(
-  //     "¿Estás seguro?",
-  //     "Los registros se guardados",
-  //     "Sí, continuar",
-  //     "Cancelar"
-  //   );
-
-  //   if (confirmed) {
-  //     registrarServicioDePsicologo(payload)
-  //       .then(async (data) => {
-  //         await GetServiciosPorPsicologo();
-  //         simpleAlert("Registro guardado", "", "success");
-  //       })
-  //       .catch((e) => {
-  //         console.log("erorr : registrarServicioDePsicologo ", e)
-  //         simpleAlert("Algo salió mal",  e, "error");
-  //       });
-  //   }
-  // };
-
-  const handleUpdateSubmitForm = async (data) => {
-    if (user == null) return;
-
-    const payload = {
-      idPsicologo: data.psicologoId,
-      idServicio: parseInt(data.servicioId, 10),
-      valor: parseFloat(data.valor),
-    };
-    
-    const confirmed = await confirmationAlert(
-      "¿Estás seguro?",
-      "Los registros se actualizados",
-      "Sí, continuar",
-      "Cancelar"
-    );
-
-    if (confirmed) {
-      actualizarServicioDePsicologo(data.id, payload)
-      .then(async (data) => {
-        await GetServiciosPorPsicologo();
-        simpleAlert("Registro actualizado", "", "success");
-       
-      })
-      .catch((e) => {
-        simpleAlert("Algo salió mal", "", "error");
-      });
-    }
- 
-  };
 
   const GetServiciosPorPsicologo = async () => {
     try {
@@ -162,9 +99,80 @@ const PsychologyServices = () => {
 
   };
 
+  // start
+
+  const validationSchema = Yup.object({
+    servicio: Yup.object().required("La campo es obligatorio"),
+    valor: Yup.number().nullable().required("La campo es obligatorio"),
+  });
+
+  const handleSubmitForm = async (data) => {
+    if (user == null) return;
+    
+    const payload = {
+      idUser: user.userid,
+      idServicio: parseInt(data.servicio.id, 10),
+      valor: parseFloat(data.valor),
+    };
+
+    const confirmed = await confirmationAlert(
+      "¿Estás seguro?",
+      "Los registros se guardados",
+      "Sí, continuar",
+      "Cancelar"
+    );
+
+    if (confirmed) {
+      registrarServicioDePsicologo(payload)
+        .then(async (data) => {
+          await GetServiciosPorPsicologo();
+          simpleAlert("Registro guardado", "", "success");
+        })
+        .catch((e) => {
+          console.log("erorr : registrarServicioDePsicologo ", e)
+          simpleAlert("Algo salió mal",  e, "error");
+        });
+    }
+  };
+ 
+  const haveInitialData = () =>{
+    if(selectedRow ==  null){
+      return false;
+    }
+
+    if(selectedRow.length == 0){
+      return false;
+    }
+    return true;
+  }
+  const returnInitialData = (data) =>{
+    var object = {   
+      servicio: {},
+      valor: 0
+    } 
+
+    if(haveInitialData()){
+      object = {
+        servicio: {
+          label: data?.servicioNombre,
+          id: data?.servicioId
+        },
+        valor: data?.valor
+      }
+    }
+
+    return  object
+  }
+  // end 
+
   useEffect(() => {
     GetServiciosPorPsicologo();
   }, []);
+
+  useEffect(() => {
+    setIsSelected(selectedRow == null ? true : false);
+    setInitialState(returnInitialData(selectedRow));
+  }, [selectedRow]);
 
   return (
     <Container component="main">
@@ -184,25 +192,28 @@ const PsychologyServices = () => {
           <Grid container spacing={2} justifyContent="flex-end">
             <Grid item xs={2} sm={2}>
               <GenericModal
-                text="Servicios" 
+                text="Agregar" 
                 data={[]}
+                initialState={{}}
                 icon={<AddIcon sx={{ ml: 1 }} />}
-                onSubmit={handleSubmit} 
+                handleSubmit={handleSubmitForm}
+                validationSchema={validationSchema}
+                FormComponent={AddServiceFormModal}  
+              /> 
+            </Grid>
+            <Grid item xs={2} sm={2}>
+              <GenericModal
+                text="Editar" 
+                data={selectedRow}
+                initialState={initialState}
+                icon={<EditIcon sx={{ ml: 1 }} />}
+                handleSubmit={handleSubmitForm}
+                validationSchema={validationSchema}
+                disableForm={isSelected}
                 FormComponent={AddServiceFormModal}  
               /> 
             </Grid>
 
-            <Grid item xs={2} sm={2}>
-              <GenericModal 
-                  text="Servicios" 
-                  data={[]}
-                  disableForm={selectedRow === null ? true : false}
-                  icon={<EditIcon sx={{ ml: 1 }} />}
-                  width="50vw"
-                  onSubmit={handleSubmit} 
-                  FormComponent={AddServiceFormModal}  
-                /> 
-            </Grid>
             <Grid item xs={2} sm={2}>
               <Button
                 startIcon={<DeleteOutlineIcon />}
@@ -210,7 +221,7 @@ const PsychologyServices = () => {
                 variant="contained"
                 onClick={deleteuServicioDePsicologo}
                 sx={{ width: "auto", minWidth: "unset" }}
-                disabled={selectedRow === null ? true : false}
+                disabled={isSelected}
               >
                 Eliminar
               </Button>
@@ -226,7 +237,6 @@ const PsychologyServices = () => {
                 checkboxSelection
                 disableMultipleSelection
                 disableMultipleRowSelection
-                sx={{ border: 0 }}
                 columnVisibilityModel={visibilityModel}
                 onColumnVisibilityModelChange={(newModel) =>
                   setVisibilityModel(newModel)
@@ -240,4 +250,5 @@ const PsychologyServices = () => {
   );
 };
 
+ 
 export default PsychologyServices;

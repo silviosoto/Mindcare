@@ -1,4 +1,4 @@
-import { get, post } from "./apiService";
+import { get, post, del } from "./apiService";
 
  
 export const getDepatamentos = async () => {
@@ -61,15 +61,38 @@ export const getPsicologo = async( id )  => {
         throw (ex)
     }
 };
-// export const getPsicologo = async( id )  => {
-//     try {
-//         console.log(id)
-//         return await get( `psicologo/${id}`);
-//     }
-//     catch (ex) {
-//         rej(ex);
-//     }
-// };
+
+export const registerHobbies = async( payload )  => {
+    try {
+        return   await  post( `hobbies`, payload );  
+    }
+    catch (ex) {
+        throw (ex)
+    }
+};
+
+export const getHobbiesbyUser = async( id )  => {
+    try {
+        const  data  = await  get( `hobbies/ByUser/${id}`);
+        const result = data ? data : [];
+        return result
+    }
+    catch (ex) {
+        throw (ex)
+    }
+};
+
+export const deleteHobbies= async( id )  => {
+    try {
+        const  data  = await  del( `hobbies/${id}`);
+        const result = data ? data : [];
+        return result
+    }
+    catch (ex) {
+        throw (ex)
+    }
+};
+
 
 
 export const RegistrarPsicologo =  async (Psicologo) => {

@@ -5,30 +5,50 @@ import {
   Box,
   Button,
   IconButton,
-  Divider,
   Grid,
-  Card,
-  CardHeader,
-  CardContent,
   CardActions,
   Typography,
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import CloseIcon from "@mui/icons-material/Close";
+import { useFormik } from "formik";
+
 
 export const GenericModal = ({
   text = "Modal",
   icon = null,
   disableForm = false,
   data = {},
+  handleSubmit,
   onSubmit,
   withMax,
+  initialState = {},
   FormComponent,
+  validationSchema
 }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
+  const handleCurrentCancel = (e) => {
+    handleClose();
+  };
 
+  var formik = useFormik({
+    initialValues: initialState,
+    validationSchema: validationSchema,
+    onSubmit: (valuesFormik, resetForm) => {
+      console.log("Form Submitted:", valuesFormik);
+      handleSubmit(valuesFormik, resetForm);
+    },
+  });
+
+  useEffect(() => {
+    if (initialState) {
+      formik.setValues(initialState);
+    }
+  }, [initialState]);
+
+ 
   return (
     <>
       <Button
@@ -41,65 +61,81 @@ export const GenericModal = ({
         {text}
       </Button>
 
-      <Modal open={open} onClose={handleClose}
+      <Modal
+        open={open}
+        onClose={handleClose}
         sx={{
           zIndex: 1000, // Menor al de Swal, que por defecto está en 1300
-        }}>
-      <Box
-        sx={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: 400,
-          bgcolor: "background.paper",
-          boxShadow: 24,
-          borderRadius: 2,
         }}
       >
-        {/* Cabecera */}
         <Box
           sx={{
-            bgcolor: "#1976d2", // Fondo azul
-            color: "white", // Texto blanco
-            p: 2, // Padding
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            borderRadius: 2,
           }}
         >
-          <IconButton
-            aria-label="Cerrar"
-            onClick={handleClose}
+          {/* Cabecera */}
+          <Box
             sx={{
-              position: "absolute",
-              top: 8,
-              color: "white",
-              right: 8,
+              bgcolor: "#1976d2", // Fondo azul
+              color: "white", // Texto blanco
+              p: 2, // Padding
+              borderTopLeftRadius: 8,
+              borderTopRightRadius: 8,
             }}
           >
-            <CloseIcon />
-          </IconButton>
-          <Typography variant="h6" align="center">
-            {text}
-          </Typography>
-        </Box>
+            <IconButton
+              aria-label="Cerrar"
+              onClick={handleClose}
+              sx={{
+                position: "absolute",
+                top: 8,
+                color: "white",
+                right: 8,
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+            <Typography variant="h6" align="center">
+              {text}
+            </Typography>
+          </Box>
 
-        {/* Contenido */}
-        <Box sx={{ p: 3 }}>
-        {FormComponent && <FormComponent data={data} />}
+          {/* Contenido */}
+          <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 3 }}>
+            {FormComponent && <FormComponent data={data} formik={formik} />}
 
-          {/* Botones de acción */}
-          <Box display="flex" justifyContent="space-between" mt={3}>
-            {/* <Button onClick={onSave} variant="contained" color="primary">
-                {saveText}
-              </Button>
-            <Button onClick={onClose} variant="outlined" color="secondary">
-              {cancelText}
-            </Button> */}
+            {/* Botones de acción */}
+
+            <CardActions>
+              <Grid container spacing={2} justifyContent="end">
+                <Grid item xs="auto">
+                  <Button
+                    size="large"
+                    color="secondary"
+                    onClick={handleCurrentCancel}
+                    variant="contained"
+                  >
+                    Cancelar
+                  </Button>
+                </Grid>
+
+                <Grid item xs="auto">
+                  <Button size="large" type="submit" variant="contained">
+                    Guardar
+                  </Button>
+                </Grid>
+              </Grid>
+            </CardActions>
           </Box>
         </Box>
-      </Box>
-    </Modal>
+      </Modal>
     </>
   );
 };

@@ -5,10 +5,14 @@ const cookies  = useCookie();
 const accessToken = cookies.get("accessToken");
 
 const handleResponse = async (response) => {
+
     if (!response.ok) {
         const error = await response.json();
-        // console.log("handleResponse", error.error)
+         console.log("handleResponse", error.error)
         throw new Error(error.message || 'Algo anda mal');
+    }
+    if (response.status === 204){
+        return null;
     }
     return response.json();
 };
