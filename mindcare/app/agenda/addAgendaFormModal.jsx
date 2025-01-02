@@ -1,8 +1,10 @@
 import React from "react";
 import {
-  Autocomplete,
-  CircularProgress,
+  FormControl,
   Grid,
+  InputLabel,
+  MenuItem,
+  Select,
   TextField,
 } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -11,123 +13,160 @@ import { getServiciosByName } from "../Services/servicios.service";
 import {
   registrarServicioDePsicologo,
   actualizarServicioDePsicologo,
-  GetServiciosPorPsicologo
+  GetServiciosPorPsicologo,
 } from "../Services/profilePsicology.service";
- 
-import { DemoContainer } from '@mui/x-date-pickers/internals/demo';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { TimeField } from '@mui/x-date-pickers/TimeField';
+import { LocalizationProvider, TimePicker } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
-
-const AddAgendaFormModal = ({ formik, data }) => {
-  
-  const initialStateAutoComplete =
-    data.length == 0
-      ? null
-      : {
-          label: data?.servicioNombre,
-        };
-
-  const [options, setOptions] = useState(
-    data.length == 0
-      ? []
-      : [
-          {
-            id: "1",
-            label: data?.servicioNombre,
-            nombre: "hola",
-            value: "2",
-          },
-        ]
-  );
- 
-  const haveInitialData = (data) =>{
-    if(data.length == 0){
-      return false;
-    }
-    return true;
-  }
-
-  const returnInitialData = (data) =>{
-    var object = {   
-      servicio: {},
-      valor: 0
-    } 
-
-    if(haveInitialData(data)){
-      object = {
-        servicio: {
-          label: data?.servicioNombre,
-          id: data?.servicioId
-        },
-        valor: 2
-      }
-    }
- 
-    return  object
-  }
-  const initialState =  returnInitialData(data);
+const AddServiceFormModal = ({ formik, data }) => {
+  // const initialState = returnInitialData(data);
   const [loading, setLoading] = useState(false);
- 
-  const [selectedService, setSelectedService] = useState(
-    initialStateAutoComplete
-  );
-
   const { user } = useAppContext();
+  const months = [
+    { value: 1, label: "Enero" },
+    { value: 2, label: "Febrero" },
+    { value: 3, label: "Marzo" },
+    { value: 4, label: "Abril" },
+    { value: 5, label: "Mayo" },
+    { value: 6, label: "Junio" },
+    { value: 7, label: "Julio" },
+    { value: 8, label: "Agosto" },
+    { value: 9, label: "Septiembre" },
+    { value: 10, label: "Octubre" },
+    { value: 11, label: "Noviembre" },
+    { value: 12, label: "Diciembre" },
+  ];
 
-  const SearchAutocompete = async (name) => {
-    if (user == null) return;
-
-    try {
-      const data = await getServiciosByName(name);
-      let serviciosConLabel = data.map((servicio) => ({
-        ...servicio,
-        servicios: servicio.nombre,
-        label: servicio.nombre,
-      }));
-
-      setOptions(serviciosConLabel);
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const dias = [
+    { value: 1, label: "Lunes" },
+    { value: 2, label: "Martes" },
+    { value: 3, label: "Miercoles" },
+    { value: 4, label: "Jueves" },
+    { value: 5, label: "Viernes" },
+    { value: 6, label: "Sabado" },
+    { value: 7, label: "Domingo" }
+  ];
 
   useEffect(() => {
-    console.log("formik: ",  formik);
-    setOptions([]);
+    console.log("AddServiceFormModal", formik);
   }, []);
 
   return (
     <>
       <Grid container justifyContent="center" spacing={1}>
-          <Grid item xs={6}>
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DemoContainer components={['TimeField']}>
-                <TimeField label="Basic time field" />
-              </DemoContainer>
-            </LocalizationProvider>
-          </Grid>
+        <Grid item xs={3}>
+          <TextField
+            label="Año"
+            name="anio"
+            type="number"
+            variant="outlined"
+            value={formik.values.anio}
+            onChange={formik.handleChange}
+            error={formik.touched.anio && Boolean(formik.errors.anio)}
+            helperText={formik.touched.anio && formik.errors.anio}
+            fullWidth
+          />
+        </Grid>
 
-          <Grid item xs={3}>
-            <TextField
-              label="Valor"
-              name="valor"
-              type="number"
-              variant="outlined"
-              value={formik.values.valor}
+        <Grid item xs={4}>
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Mes</InputLabel>
+            <Select
+              name="mes"
+              value={formik.values.mes}
               onChange={formik.handleChange}
-              error={formik.touched.valor && Boolean(formik.errors.valor)}
-              helperText={formik.touched.valor && formik.errors.valor}
-              fullWidth
-              required
+              error={formik.touched.mes && !!formik.errors.mes}
+            >
+              {months.map((month) => (
+                <MenuItem key={month.value} value={month.value}>
+                  {month.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          
+        </Grid>
+
+        <Grid item xs={4}>
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Dia de Semana</InputLabel>
+            <Select
+              name="diaSemana"
+              value={formik.values.diaSemana}
+              onChange={formik.handleChange}
+              error={formik.touched.diaSemana && !!formik.errors.diaSemana}
+            >
+              {dias.map((item) => (
+                <MenuItem key={item.value} value={item.value}>
+                  {item.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={3}></Grid>
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <Grid item xs={4}>
+            <TimePicker
+              label="Hora de inicio"
+              value={formik.values.horaInicio}
+              // onChange={formik.handleChange}
+              onChange={(newValue) => {
+                // setSelectedService(newValue);
+                formik.handleChange({
+                  target: { name: "horaInicio", value: newValue },
+                });
+                console.log("horaInicio", newValue);
+              }}
+              // onChange={(newValue) => setFieldValue("horaInicio", newValue)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  error={
+                    formik.touched.horaInicio &&
+                    Boolean(formik.errors.horaInicio)
+                  }
+                  helperText={
+                    formik.touched.horaInicio && formik.errors.horaInicio
+                  }
+                  sx={{ mb: 2 }}
+                />
+              )}
             />
           </Grid>
-        </Grid>
+
+          <Grid item xs={4}>
+            <TimePicker
+              label="Hora Fin"
+              name="horaFin"
+              value={formik.values.horaFin}
+              onChange={(newValue) => {
+                // setSelectedService(newValue);
+                console.log("horaFin", {
+                  target: { name: "horaFin", value: newValue },
+                });
+                formik.handleChange({
+                  target: { name: "horaFin", value: newValue },
+                });
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  error={
+                    formik.touched.horaFin && Boolean(formik.errors.horaFin)
+                  }
+                  helperText={formik.touched.horaFin && formik.errors.horaFin}
+                  sx={{ mb: 2 }}
+                />
+              )}
+            />
+          </Grid>
+        </LocalizationProvider>
+      </Grid>
     </>
   );
 };
 
-export default AddAgendaFormModal;
+export default AddServiceFormModal;

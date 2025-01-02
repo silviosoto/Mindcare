@@ -1,218 +1,449 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { 
-    Box, Button, Modal, Table, TableBody, TableCell, TableContainer, 
-    TableHead, TableRow, TextField, Typography 
+
+import {
+  Box,
+  Button,
+  Container,
+  FormControl,
+  Grid,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
 } from "@mui/material";
-import { Formik, Form, Field } from "formik";
-import * as Yup from "yup";
-import { GenericModal } from "@/app/components/GenericModal"; 
-import AddIcon from "@mui/icons-material/Add";
+import { DataGrid } from "@mui/x-data-grid";
+import { useEffect, useState } from "react";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import AddAgendaFormModal from "./addAgendaFormModal";
+import { GenericModal } from "@/app/components/GenericModal";
+import {
+  registerAgenda,
+  getAgendaByPsicologo,
+  deleteAgenda
+} from "../Services/agenda.service";
 import { useAppContext } from "../context/context";
-import  AddAgendaFormModal from "./addAgendaFormModal";
-// Estilo para el modal
-const modalStyle = {
-  position: "absolute",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  width: 400,
-  bgcolor: "background.paper",
-  border: "2px solid #000",
-  boxShadow: 24,
-  p: 4,
-};
+import { useSimpleAlert, useConfirmationAlert } from "../hooks/useSwal";
+import AddIcon from "@mui/icons-material/Add";
+import * as Yup from "yup";
+import moment from "moment";
+import { useFormik } from "formik";
 
-const Agenda = () => {
-  const [horarios, setHorarios] = useState([]); // Estado para los horarios
-  const [open, setOpen] = useState(false); // Estado para el modal
-  const [selectedHorario, setSelectedHorario] = useState(null); // Para editar un horario
+const columns = [
+  { field: "id", headerName: "ID", width: 70 },
+  { field: "idpsicologo" },
+  {
+    field: "anio",
+    headerName: "Año",
+    type: "number",
+    width: 90,
+  },
+  {
+    field: "mes",
+    headerName: "Mes",
+    type: "number",
+    width: 90,
+  },
+  { field: "diaSemana", headerName: "Dia semana", width: 200 },
+  { field: "horaInicio", headerName: "Hora inicio", width: 200 },
+  { field: "horaInicio", headerName: "Hora fin", width: 200 },
+];
+const paginationModel = { page: 0, pageSize: 5 };
+
+const PsychologyServices = () => {
+  const initial = {
+    anio: 0,
+    mes: 0,
+    horaInicio: null,
+    horaFinal: null,
+    diaSemana: 0,
+  };
+  const simpleAlert = useSimpleAlert();
+  const confirmationAlert = useConfirmationAlert();
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [isSelected, setIsSelected] = useState(false);
+  const [initialState, setInitialState] = useState(initial);
+  const [rows, setRow] = useState([]);
   const { user } = useAppContext();
-  // Cargar los horarios al inicio
-  useEffect(() => {
-    fetchHorarios();
-  }, []);
 
-  // Función para obtener los horarios de la API
-  const fetchHorarios = async () => {
+
+  const dias = [
+    { value: 1, label: "Lunes" },
+    { value: 2, label: "Martes" },
+    { value: 3, label: "Miercoles" },
+    { value: 4, label: "Jueves" },
+    { value: 5, label: "Viernes" },
+    { value: 6, label: "Sabado" },
+    { value: 7, label: "Domingo" },
+  ];
+
+  const months = [
+    { value: 1, label: "Enero" },
+    { value: 2, label: "Febrero" },
+    { value: 3, label: "Marzo" },
+    { value: 4, label: "Abril" },
+    { value: 5, label: "Mayo" },
+    { value: 6, label: "Junio" },
+    { value: 7, label: "Julio" },
+    { value: 8, label: "Agosto" },
+    { value: 9, label: "Septiembre" },
+    { value: 10, label: "Octubre" },
+    { value: 11, label: "Noviembre" },
+    { value: 12, label: "Diciembre" },
+  ];
+
+  const initFilter = {
+    anio: 2025,
+    mes: 1,
+    diaSemana: 1,
+  };
+
+  const filterSechema = Yup.object({
+    anio: Yup.number()
+      .required("El año es obligatorio")
+      .min(2025, "El año debe ser al menos 2025")
+      .max(2100),
+    mes: Yup.number().required("El mes es obligatorio").min(1).max(12),
+  });
+
+  var formikFilter = useFormik({
+    initialValues: initFilter,
+    validationSchema: filterSechema,
+    onSubmit: (valuesFormik, resetForm) => {
+      console.log("Form filter:", valuesFormik);
+      FilterSubmit(valuesFormik, resetForm);
+    },
+  });
+
+  const obtenerFechaSeparada = () => {
+    const hoy = new Date();
+    const anio = hoy.getFullYear();
+    const mes = hoy.getMonth() + 1; // Los meses en JavaScript son de 0 a 11
+    const diaSemana = hoy.getDay(); // Los días de la semana en JavaScript son de 0 (domingo) a 6 (sábado)
+  
+    // Convertir el día de la semana para que empiece en lunes como día 1
+    const diaSemanaConvertido = diaSemana === 0 ? 7 : diaSemana;
+  
+    return { anio, mes, diaSemana: diaSemanaConvertido };
+  };
+  
+  const FilterSubmit = async (valuesFormik, resetForm) => {
     try {
-      const response = await fetch("/api/horarios-medicos"); // GET request
-      if (!response.ok) throw new Error("Error al obtener horarios");
-      const data = await response.json();
-      setHorarios(data);
-    } catch (error) {
-      console.error("Error al obtener horarios:", error);
+      await GetAgendaByPsicologo(
+        user.userid,
+        valuesFormik.diaSemana,
+        valuesFormik.mes,
+        valuesFormik.anio
+      );
+    } catch (error) {}
+  };
+
+  const handleSelectionChange = (selection) => {
+    const selectedId = selection[0];
+    const selectedRowData = rows.find((row) => row.id === selectedId);
+    if (selectedRowData == null) {
+      setSelectedRow(null);
+    } else {
+      setSelectedRow(selectedRowData);
+    }
+  };
+  // Oculta la columna
+  const [visibilityModel, setVisibilityModel] = useState({
+    id: false,
+    psicologoId: false,
+  });
+
+  const GetAgendaByPsicologo = async (idUser, diaSemana, mes, anio) => {
+    try {
+      const data = await getAgendaByPsicologo(
+        idUser,
+        diaSemana,
+        mes,
+        anio
+      );
+      if (data != undefined) {
+         
+        let ListAgenda = data.map((agenda) => ({
+            id: agenda.id,
+            idpsicologo: agenda.idpsicologo,
+            anio: agenda.anio,
+            mes:  getNombreDiaMes(agenda.mes, months),
+            diaSemana: getNombreDiaMes(agenda.diaSemana, dias),
+            horaInicio: agenda.horaInicio,
+            horaFin: agenda.horaFin,
+           label: agenda.diaSemana,
+        }));
+        setRow(ListAgenda);
+        // moment(agenda.horaFin).format("HH:mm")
+      }
+    } catch (error) {}
+  };
+
+  function getNombreDiaMes(value, list ) {
+     const dia = list.find(d => d.value === value);
+    return dia ? dia.label : 'Valor no encontrado'; 
+  }
+
+  const deleteDiaDeAgenda = async () => {
+    const confirmed = await confirmationAlert(
+      "¿Estás seguro?",
+      "Los registros se eliminados",
+      "Sí, continuar",
+      "Cancelar"
+    );
+
+    if (confirmed) {
+      await deleteAgenda(selectedRow.id)
+        .then(async () => {
+          let date =  obtenerFechaSeparada();
+ 
+          await GetAgendaByPsicologo(user.userid, date.diaSemana, date.mes, date.anio);
+          simpleAlert("Registro eliminado", "", "success");
+        })
+        .catch((e) => {
+          simpleAlert("Algo salió mal", "", "error");
+        });
     }
   };
 
-  // Abrir el modal para agregar o editar
-  const handleOpen = (horario = null) => {
-    setSelectedHorario(horario);
-    setOpen(true);
-  };
+  // start
 
-  // Cerrar el modal
-  const handleClose = () => setOpen(false);
-
-  // Validación del formulario
-  const validationSchema = Yup.object().shape({
-    diaSemana: Yup.number().required("El día es obligatorio").min(1).max(7),
-    horaInicio: Yup.string().required("La hora de inicio es obligatoria"),
-    horaFin: Yup.string().required("La hora de fin es obligatoria"),
+  const validationSchema = Yup.object({
+    anio: Yup.number()
+      .required("El año es obligatorio")
+      .min(2025, "El año debe ser al menos 2025")
+      .max(2100),
     mes: Yup.number().required("El mes es obligatorio").min(1).max(12),
-    anio: Yup.number().required("El año es obligatorio").min(2020).max(2100),
+    // horaInicio: Yup.string().nullable().required("La campo es obligatorio"),
+    // horaFin: Yup.string().required("La campo es obligatorio"),
   });
 
-  // Función para enviar los datos del formulario
-   const handleSubmitForm = async (data) => {
-     if (user == null) return;
-     
-     const payload = {
-       idUser: user.userid,
-       idServicio: parseInt(data.servicio.id, 10),
-       valor: parseFloat(data.valor),
-     };
- 
-     const confirmed = await confirmationAlert(
-       "¿Estás seguro?",
-       "Los registros se guardados",
-       "Sí, continuar",
-       "Cancelar"
-     );
- 
-     if (confirmed) {
-       registrarServicioDePsicologo(payload)
-         .then(async (data) => {
-           await GetServiciosPorPsicologo();
-           simpleAlert("Registro guardado", "", "success");
-         })
-         .catch((e) => {
-           console.log("erorr : registrarServicioDePsicologo ", e)
-           simpleAlert("Algo salió mal",  e, "error");
-         });
-     }
-   };
+  const handleSubmitForm = async (data) => {
+    // console.log("handleSubmitForm", data);
+    if (user == null) return;
+
+    const payload = {
+      idUser: parseInt(user.userid, 10),
+      anio: data.anio,
+      mes: data.mes,
+      diaSemana: data.diaSemana,
+      horaInicio: moment(data.horaInicio).format("HH:mm:ss"),
+      horaFin: moment(data.horaFin).format("HH:mm:ss"),
+    };
+
+    const confirmed = await confirmationAlert(
+      "¿Estás seguro?",
+      "Los registros se guardados",
+      "Sí, continuar",
+      "Cancelar"
+    );
+
+    if (confirmed) {
+      registerAgenda(payload)
+        .then(async (data) => {
+          await GetAgendaByPsicologo();
+          simpleAlert("Registro guardado", "", "success");
+        })
+        .catch((e) => {
+          console.log("error : registerAgenda ", e);
+          simpleAlert("Algo salió mal", e, "error");
+        });
+    }
+  };
+
+  const haveInitialData = () => {
+    if (selectedRow == null) {
+      return false;
+    }
+
+    if (selectedRow.length == 0) {
+      return false;
+    }
+    return true;
+  };
+  const returnInitialData = (data) => {
+    var object = {
+      servicio: {},
+      valor: 0,
+    };
+
+    if (haveInitialData()) {
+      object = {
+        servicio: {
+          label: data?.servicioNombre,
+          id: data?.servicioId,
+        },
+        valor: data?.valor,
+      };
+    }
+
+    return object;
+  };
+  // end
+
+  useEffect(() => {
+    let date =  obtenerFechaSeparada();
+    console.log("useEffect", date)
+    GetAgendaByPsicologo(user.userid, date.diaSemana, date.mes, date.anio);
+  }, []);
+
+  useEffect(() => {
+    setIsSelected(selectedRow == null ? true : false);
+    // setInitialState(returnInitialData(selectedRow));
+  }, [selectedRow]);
 
   return (
-    <Box sx={{ p: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Gestión de Horarios Médicos
-      </Typography>
-        <GenericModal
-            text="Agregar" 
-            data={[]}
-            initialState={{}}
-            icon={<AddIcon sx={{ ml: 1 }} />}
-            handleSubmit={handleSubmitForm}
-            validationSchema={validationSchema}
-            FormComponent={AddAgendaFormModal}  
-        />
+    <Container component="main">
+      <Box
+        sx={{
+          marginTop: 8,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
+        <Box sx={{ m: 1 }} />
+        <Typography component="h1" variant="h5">
+          Agenda
+        </Typography>
+        <Box sx={{ mt: 3 }}>
+          <Grid container spacing={2} justifyContent="flex-end">
+            <Grid item xs={2} sm={2}>
+              <GenericModal
+                text="Agregar"
+                data={{}}
+                initialState={initialState}
+                icon={<AddIcon sx={{ ml: 1 }} />}
+                handleSubmit={handleSubmitForm}
+                validationSchema={validationSchema}
+                FormComponent={AddAgendaFormModal}
+              />
+            </Grid>
 
-      {/* Tabla de horarios */}
-      <TableContainer sx={{ mt: 3 }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Día</TableCell>
-              <TableCell>Hora Inicio</TableCell>
-              <TableCell>Hora Fin</TableCell>
-              <TableCell>Mes</TableCell>
-              <TableCell>Año</TableCell>
-              <TableCell>Acciones</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {horarios.map((horario) => (
-              <TableRow key={horario.idHorario}>
-                <TableCell>{["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"][horario.diaSemana - 1]}</TableCell>
-                <TableCell>{horario.horaInicio}</TableCell>
-                <TableCell>{horario.horaFin}</TableCell>
-                <TableCell>{horario.mes}</TableCell>
-                <TableCell>{horario.anio}</TableCell>
-                <TableCell>
-                  <Button variant="outlined" onClick={() => handleOpen(horario)}>
-                    Editar
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            {/* <Grid item xs={2} sm={2}>
+              <GenericModal
+                text="Editar"
+                data={selectedRow}
+                initialState={initialState}
+                icon={<EditIcon sx={{ ml: 1 }} />}
+                handleSubmit={handleSubmitForm}
+                validationSchema={validationSchema}
+                disableForm={isSelected}
+                FormComponent={AddAgendaFormModal}
+              />
+            </Grid> */}
 
-      {/* Modal para agregar o editar horario */}
-      {/* <Modal open={open} onClose={handleClose}>
-        <Box sx={modalStyle}>
-          <Typography variant="h6" gutterBottom>
-            {selectedHorario ? "Editar Horario" : "Agregar Horario"}
-          </Typography>
-          <Formik
-            initialValues={{
-              diaSemana: selectedHorario?.diaSemana || "",
-              horaInicio: selectedHorario?.horaInicio || "",
-              horaFin: selectedHorario?.horaFin || "",
-              mes: selectedHorario?.mes || "",
-              anio: selectedHorario?.anio || "",
-            }}
-            validationSchema={validationSchema}
-            onSubmit={handleSubmit}
-          >
-            {({ errors, touched }) => (
-              <Form>
-                <Field
-                  as={TextField}
-                  fullWidth
-                  label="Día de la semana (1-7)"
-                  name="diaSemana"
-                  error={touched.diaSemana && !!errors.diaSemana}
-                  helperText={touched.diaSemana && errors.diaSemana}
-                  sx={{ mb: 2 }}
-                />
-                <Field
-                  as={TextField}
-                  fullWidth
-                  label="Hora de inicio (HH:mm)"
-                  name="horaInicio"
-            
-                  sx={{ mb: 2 }}
-                />
-                <Field
-                  as={TextField}
-                  fullWidth
-                  label="Hora de fin (HH:mm)"
-                  name="horaFin"
-                  error={touched.horaFin && !!errors.horaFin}
-                  helperText={touched.horaFin && errors.horaFin}
-                  sx={{ mb: 2 }}
-                />
-                <Field
-                  as={TextField}
-                  fullWidth
-                  label="Mes (1-12)"
-                  name="mes"
-                  error={touched.mes && !!errors.mes}
-                  helperText={touched.mes && errors.mes}
-                  sx={{ mb: 2 }}
-                />
-                <Field
-                  as={TextField}
-                  fullWidth
-                  label="Año"
-                  name="anio"
-                  error={touched.anio && !!errors.anio}
-                  helperText={touched.anio && errors.anio}
-                  sx={{ mb: 2 }}
-                />
-                <Button type="submit" variant="contained" fullWidth>
-                  Guardar
-                </Button>
-              </Form>
-            )}
-          </Formik>
+            <Grid item xs={2} sm={2}>
+              <Button
+                startIcon={<DeleteOutlineIcon />}
+                fullWidth
+                variant="contained"
+                onClick={deleteDiaDeAgenda}
+                sx={{ width: "auto", minWidth: "unset" }}
+                disabled={isSelected}
+              >
+                Eliminar
+              </Button>
+            </Grid>
+
+            <Grid item xs={12}>
+              <Box
+                component="form"
+                onSubmit={formikFilter.handleSubmit}
+                sx={{ mt: 3 }}
+              >
+                <Grid container spacing={2}>
+                  <Grid item>
+                    <TextField
+                      label="Año"
+                      size="small"
+                      name="anio"
+                      type="number"
+                      variant="outlined"
+                      value={formikFilter.values.anio}
+                      onChange={formikFilter.handleChange}
+                      error={
+                        formikFilter.touched.anio &&
+                        Boolean(formikFilter.errors.anio)
+                      }
+                      helperText={
+                        formikFilter.touched.anio && formikFilter.errors.anio
+                      }
+                      fullWidth
+                    />
+                  </Grid>
+                  <Grid item>
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                      <InputLabel>Mes</InputLabel>
+                      <Select
+                        name="mes"
+                        size="small"
+                        value={formikFilter.values.mes}
+                        onChange={formikFilter.handleChange}
+                        error={
+                          formikFilter.touched.mes && !!formikFilter.errors.mes
+                        }
+                      >
+                        {months.map((month) => (
+                          <MenuItem key={month.value} value={month.value}>
+                            {month.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item>
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                      <InputLabel>Dia de Semana</InputLabel>
+                      <Select
+                        size="small"
+                        name="diaSemana"
+                        value={formikFilter.values.diaSemana}
+                        onChange={formikFilter.handleChange}
+                        error={
+                          formikFilter.touched.diaSemana &&
+                          !!formikFilter.errors.diaSemana
+                        }
+                      >
+                        {dias.map((item) => (
+                          <MenuItem key={item.value} value={item.value}>
+                            {item.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item>
+                    <Button type="submit" variant="contained">
+                      Buscar
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Box>
+            </Grid>
+
+            <Grid item xs={12}>
+              <DataGrid
+                rows={rows}
+                columns={columns}
+                initialState={{ pagination: { paginationModel } }}
+                // pageSizeOptions={[5, 10]}
+                onRowSelectionModelChange={handleSelectionChange}
+                checkboxSelection
+                disableMultipleSelection
+                disableMultipleRowSelection
+                columnVisibilityModel={visibilityModel}
+                onColumnVisibilityModelChange={(newModel) =>
+                  setVisibilityModel(newModel)
+                }
+              />
+            </Grid>
+          </Grid>
         </Box>
-      </Modal> */}
-    </Box>
+      </Box>
+    </Container>
   );
 };
 
-export default Agenda;
+export default PsychologyServices;
