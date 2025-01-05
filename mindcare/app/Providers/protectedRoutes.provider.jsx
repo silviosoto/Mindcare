@@ -17,7 +17,7 @@ export const ProtectedRoutesProvider = (props) => {
 		children
 	} = props;
 
-	const checkTimeOut = useRef(3600000);
+	// const checkTimeOut = useRef(3600000);
 	const loadingTimeOut = useRef(500);
 	//Context states
 	const  {user}  = useAppContext();
@@ -40,7 +40,7 @@ export const ProtectedRoutesProvider = (props) => {
 		});
 		
 		if (currentRoute) {
-			// console.log("user information", currentRoute.roles, user)
+			console.log("user information", currentRoute, user)
 			if (!user) return <Unauthorize />;
 			else if (currentRoute.roles?.length !== 0 && !currentRoute.roles?.includes(user?.profile)) return <Forbidden />;
 		} 

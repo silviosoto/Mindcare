@@ -17,6 +17,7 @@ import { useForm } from 'react-hook-form';
 import { get, postNoAutenticate, put, del } from '../Services/apiService';
 import { useCookie } from '../hooks/useCookie.hook';
 import { useRouter } from "next/navigation"
+import { useAppContext } from "../context/context";
 
 const defaultTheme = createTheme();
 
@@ -25,6 +26,9 @@ export default function SignIn() {
   const { register, handleSubmit, formState: { errors } } = useForm();
   const { set, remove } = useCookie();
   const { push } = useRouter();
+  const {
+		setUser
+	} = useAppContext();
 
   const onSubmit = async (data) => {
     try {
@@ -36,6 +40,7 @@ export default function SignIn() {
       set("profile", newData?.profile)
       set("accessToken", newData?.accessToken)
       set("refreshToken", newData?.refreshToken)
+      setUser( { userId: newData?.userId, username: newData?.username, profile: newData?.profile})
       push('Dashboard')
 
     } catch (error) {
